@@ -14,11 +14,11 @@ const CardCalculator = () => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
     const [cardOpen, setCardOpen] = useState(false)
-    const [cardImage, setCardImage] = useState("https://cards.scryfall.io/normal/front/a/3/a31ffc9e-d21b-4a8f-ac67-695e38e09e3b.jpg?1706240553")
+    const [cardImage, setCardImage] = useState(null)
     const [oracleText, setOracleText] = useState("")
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
-            cardName: "Anax, Hardened in the Forge",
+            cardName: "",
             exp: 0,
             convertedManaCost: 0,
             cardType: {label: "Instant", value: 3},
