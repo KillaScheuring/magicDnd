@@ -130,7 +130,7 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                 expCost += protectionAbilities * 2
                 expCost += stupidAbilities * 5
 
-                expCost += creatureRemoved ? 7 : 0
+                expCost += creaturesRemoved ? 7 : 0
                 expCost += monarchOrInit ? 10 : 0
                 expCost += searchesLibrary ? 5 : 0
                 expCost += manaAbility ? 5 : 0
