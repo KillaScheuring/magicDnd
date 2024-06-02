@@ -24,7 +24,7 @@ const CardCalculator = () => {
     const [oracleText, setOracleText] = useState("")
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
-            cardName: "Restless Bloodseeker // Bloodsoaked Reveler",
+            cardName: "",
             exp: 0,
             cardRarity: {label: "Common", value: 1},
             banned: false,
