@@ -95,6 +95,7 @@ export const ControlledAutocomplete = ({control, name, options, ...props}) => {
                                 onChange={(e, data) => onChange(data)}
                                 onBlur={onBlur}
                                 value={value}
+                                className={props?.className}
                             />
                         </FormControl>
                     </>);
@@ -149,7 +150,7 @@ export const ControlledToggle = ({control, name, ...props}) => {
                 name={name}
                 control={control}
                 render={({field: {onChange, value}}) => (
-                    <Button variant={value ? "contained" : "outlined"} onClick={() => onChange(!value)}>
+                    <Button className={props?.className} variant={value ? "contained" : "outlined"} onClick={() => onChange(!value)}>
                         {props?.label}
                     </Button>
                 )}
