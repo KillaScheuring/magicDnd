@@ -349,6 +349,8 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                             <Row>
                                 <Toggle name={"landType"} label={"Basic land type"} control={control}/>
                                 <Toggle name={"subType"} label={"Subtype"} control={control}/>
+                            </Row>
+                            <Row>
                                 <Toggle name={"manLand"} label={"Make/become creature"} control={control}/>
                                 <Toggle name={"untapped"} label={"Untapped"} control={control}/>
                             </Row>
@@ -378,69 +380,139 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
             case "Planeswalker":
                 return (
                     <>
-                        <Row>
-                            <TextField name={"loyalty"} label={"Starting loyalty"}
-                                       type={"number"} control={control}
-                            />
-                        </Row>
-                        <Row>
-                            <TextField name={"plusAbilities"} label={"Number of plus (or 0) abilities"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"minusAbilities"} label={"Number of minus abilities"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"staticAbilities"} label={"Number of static abilities"}
-                                       type={"number"} control={control}
-                            />
-                        </Row>
+                        <SmallScreen>
+                            <Row>
+                                <TextField name={"loyalty"} label={"Starting loyalty"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"plusAbilities"} label={"Plus (or 0) abilities"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"minusAbilities"} label={"Minus abilities"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"staticAbilities"} label={"Static abilities"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                        </SmallScreen>
+                        <LargeScreen>
+                            <Row>
+                                <TextField name={"loyalty"} label={"Starting loyalty"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"plusAbilities"} label={"Number of plus (or 0) abilities"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"minusAbilities"} label={"Number of minus abilities"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"staticAbilities"} label={"Number of static abilities"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                        </LargeScreen>
                     </>
                 )
             default:
                 return (
                     <>
-                        <Row>
-                            <TextField name={"damage"} label={"Damage/life lost to opponent"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"life"} label={"Life gained"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"creaturesRemoved"} label={"Creatures destroyed or removed"}
-                                       type={"number"} control={control}
-                            />
-                        </Row>
-                        <Row>
-                            <TextField name={"cardsDrawn"} label={"Cards drawn"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"cardsDiscarded"} label={"Cards opponent discards"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"cardsLookedAt"} label={"Cards looked at and not drawn"}
-                                       type={"number"} control={control}
-                            />
-                        </Row>
-                        <Row>
-                            <TextField name={"extraTurns"} label={"Extra turns added"}
-                                       type={"number"} control={control}
-                            />
-                            <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                       type={"number"} control={control}
-                            />
-                        </Row>
-                        <Row>
-                            <Toggle name={"tutorsTop"} label={"Tutors to top"} control={control}/>
-                            <Toggle name={"tutorsBoard"} label={"Tutors to hand/board"} control={control}/>
-                            <Toggle name={"countersSpell"} label={"Counters spells"} control={control}/>
-                            <Toggle name={"landRemoved"} label={"Destroys/removes land"} control={control}/>
-                        </Row>
-                        <Row>
-                            <Toggle name={"storm"} label={"Storm"} control={control}/>
-                            <Toggle name={"cascade"} label={"Cascade"} control={control}/>
-                            <Toggle name={"monarchOrInit"} label={"Adds Monarch/Initiative"} control={control}/>
-                            <Toggle name={"boardWipe"} label={"Board wipe"} control={control} />
-                        </Row>
+                        <SmallScreen>
+                            <Row>
+                                <TextField name={"damage"} label={"Damage/life lost"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"life"} label={"Life gained by player"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"creaturesRemoved"} label={"Creatures killed"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"cardsDrawn"} label={"Cards drawn by player"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"cardsDiscarded"} label={"Opponent discards"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"cardsLookedAt"} label={"Cards looked at"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"extraTurns"} label={"Extra turns added"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"tutorsTop"} label={"Tutors to top"} control={control}/>
+                                <Toggle name={"tutorsBoard"} label={"Tutors to hand/board"} control={control}/>
+                            </Row>
+                            <Row>
+                                <Toggle name={"countersSpell"} label={"Counters spells"} control={control}/>
+                                <Toggle name={"landRemoved"} label={"Destroys/removes land"} control={control}/>
+                            </Row>
+                            <Row>
+                                <Toggle name={"storm"} label={"Storm"} control={control}/>
+                                <Toggle name={"cascade"} label={"Cascade"} control={control}/>
+                                <Toggle name={"boardWipe"} label={"Board wipe"} control={control} />
+                            </Row>
+                            <Row>
+                                <Toggle name={"monarchOrInit"} label={"Adds Monarch/Initiative"} control={control}/>
+                            </Row>
+                        </SmallScreen>
+                        <LargeScreen>
+                            <Row>
+                                <TextField name={"damage"} label={"Damage/life lost to opponent"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"life"} label={"Life gained"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"creaturesRemoved"} label={"Creatures destroyed or removed"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"cardsDrawn"} label={"Cards drawn"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"cardsDiscarded"} label={"Cards opponent discards"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"cardsLookedAt"} label={"Cards looked at and not drawn"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <TextField name={"extraTurns"} label={"Extra turns added"}
+                                           type={"number"} control={control}
+                                />
+                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
+                                           type={"number"} control={control}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"tutorsTop"} label={"Tutors to top"} control={control}/>
+                                <Toggle name={"tutorsBoard"} label={"Tutors to hand/board"} control={control}/>
+                                <Toggle name={"countersSpell"} label={"Counters spells"} control={control}/>
+                                <Toggle name={"landRemoved"} label={"Destroys/removes land"} control={control}/>
+                            </Row>
+                            <Row>
+                                <Toggle name={"storm"} label={"Storm"} control={control}/>
+                                <Toggle name={"cascade"} label={"Cascade"} control={control}/>
+                                <Toggle name={"monarchOrInit"} label={"Adds Monarch/Initiative"} control={control}/>
+                                <Toggle name={"boardWipe"} label={"Board wipe"} control={control} />
+                            </Row>
+                        </LargeScreen>
                     </>
                 )
         }
