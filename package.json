@@ -2,6 +2,7 @@
   "name": "card-pts-calulator",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://killascheuring.github.io/magicDnd",
   "engines": {
     "node": "18.18.0",
     "npm": "10.8.1"
