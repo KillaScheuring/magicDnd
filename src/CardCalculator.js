@@ -16,7 +16,6 @@ const CardCalculator = () => {
     const [cardOpen, setCardOpen] = useState(false)
     const [cardImage, setCardImage] = useState(null)
     const [oracleText, setOracleText] = useState("")
-
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
             cardName: "",
