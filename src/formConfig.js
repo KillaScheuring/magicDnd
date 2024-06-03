@@ -50,9 +50,9 @@ export const getFormConfig = (cardType) => {
                 "protectionAbilities": {
                     "multiplier": 2,
                     "label": {
-                        "equation": "Evasion Abilities",
-                        "smallScreen": "Evasion Abilities",
-                        "largeScreen": "Evasion Abilities",
+                        "equation": "Protection Abilities",
+                        "smallScreen": "Protection Abilities",
+                        "largeScreen": "Protection Abilities",
                     },
                     "helperText": "+2 more points if that ability is a protection ability. (Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc.)"
                 },
