@@ -192,7 +192,7 @@ const CardCalculator = () => {
             expCost += banned * 6
             equation.push(<Variable label={"Banned/Restricted"} value={banned} multiplier={6}/>)
             expCost += after2020 * 5
-            equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={6}/>)
+            equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={5}/>)
             if (cardFaces[index].cardType.label !== "Non-Basic Land") {
                 equation = [...equation, ...math.slice(1)]
             }
