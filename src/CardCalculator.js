@@ -9,19 +9,25 @@ import {
 } from "./ControlledInput";
 import {rarityToMultiplier, cardTypeToManaCostMultiplier, rarityToLevel, bannedOrRestricted} from "./options"
 import {Row} from "./FormStyling";
-import CardFaceForm from "./CardFaceForm";
+import CardFaceForm, {Variable} from "./CardFaceForm";
 import {SmallScreen, LargeScreen} from "./Breakpoints";
 
 const CardCalculator = () => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
-    const [searching, setSearching] = useState(false)
-    const [cardOpen, setCardOpen] = useState(false)
-    const [cardFaces, setCardFaces] = useState([])
+
     const [cardFaceExp, setCardFaceExp] = useState([])
-    const [cardImages, setCardImages] = useState([])
+    const [cardMath, setCardMath] = useState([])
+
+    const [searching, setSearching] = useState(true)
+    const [cardOpen, setCardOpen] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
+    const [mathOpen, setMathOpen] = useState(false)
+
+    const [cardFaces, setCardFaces] = useState([])
+    const [cardImages, setCardImages] = useState([])
     const [oracleText, setOracleText] = useState("")
+
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
             cardName: "",
@@ -140,7 +146,7 @@ const CardCalculator = () => {
                     searchesLibrary: false, // Triggers a search of a library?
                 })))
                 setCardImages(data?.image_uris?.normal ? [data?.image_uris?.normal] : cardFacesData.map(face => face?.image_uris?.normal))
-                setCardFaceExp(cardFacesData.map(() => 0))
+                setCardFaceExp(cardFacesData.map(() => ({exp: 0, math: []})))
 
                 const dataOracleText = cardFacesData.map(face => face?.oracle_text).join(transformSeparator)
                 setOracleText(dataOracleText)
@@ -176,11 +182,27 @@ const CardCalculator = () => {
     // }, [cardRarity])
 
     useEffect(() => {
+        let equation = []
         let expCost = 0
-        cardFaceExp.forEach(faceExp => expCost += faceExp)
-        expCost += banned ? 6 * cardFaceExp.length : 0
-        expCost += after2020 ? 5 * cardFaceExp.length : 0
+        cardFaceExp.forEach(({exp, equation: math=[]}, index) => {
+            expCost += exp
+            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
+                equation = [...equation, math[0]]
+            }
+            expCost += banned * 6
+            equation.push(<Variable label={"Banned/Restricted"} value={banned} multiplier={6}/>)
+            expCost += after2020 * 5
+            equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={6}/>)
+            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
+                equation = [...equation, ...math.slice(1)]
+            }
+            else {
+                equation = [...equation, ...math]
+            }
+        })
+
         expCost *= cardRarity?.value
+        setCardMath(equation)
         setValue("exp", expCost)
     }, [cardRarity, banned, after2020, setValue, cardFaceExp])
 
@@ -195,15 +217,28 @@ const CardCalculator = () => {
                     </Row>
                     <Row>
                         <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
+                        <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
                     </Row>
                 </SmallScreen>
                 <LargeScreen>
                     <Row>
-                        <TextField name={"cardName"} label={"Card Name"} control={control}/>
-                        <Button variant={"contained"} className={"mt-5 mb-4"} onClick={handleSearch}>Search</Button>
-                        <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
+                        <Row className={"w-50"}>
+                            <TextField name={"cardName"} label={"Card Name"} control={control}/>
+                            <Button variant={"contained"} className={"mt-5 mb-4"} onClick={handleSearch}>Search</Button>
+                        </Row>
+                        <Row className={"w-50"}>
+                            <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
+                            <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
+                        </Row>
                     </Row>
                 </LargeScreen>
+                {mathOpen && (
+                    <Row>
+                        <span>
+                            (<span className={"equation"}>{cardMath}</span>) * <Variable {...cardRarity}/>
+                        </span>
+                    </Row>
+                )}
 
                 {!searching && (
                     <>
@@ -235,8 +270,8 @@ const CardCalculator = () => {
                 {!searching && cardFaces.map((face, faceIndex) => (
                     <CardFaceForm {...face}
                                   showExp={cardFaceExp.length > 1}
-                                  onChange={faceExp => setCardFaceExp(prevState => {
-                                      prevState[faceIndex] = faceExp
+                                  onChange={(faceExp, faceEqu) => setCardFaceExp(prevState => {
+                                      prevState[faceIndex] = {exp: faceExp, equation: faceEqu}
                                       return [...prevState]
                                   })}
                     />

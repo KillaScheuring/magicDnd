@@ -26,7 +26,7 @@ export const ControlledTextField = ({control, name, ...props}) => {
             {
                 props?.helperText ?
                     <Tooltip title={props?.helperText}>
-                        <FormLabel component={"legend"}>{props?.label} ⓘ</FormLabel>
+                        <FormLabel component={"legend"}>{props?.label}</FormLabel>
                     </Tooltip> :
                     <FormLabel component={"legend"}>{props?.label}</FormLabel>
             }
@@ -149,13 +149,18 @@ export const ControlledToggle = ({control, name, ...props}) => {
             <Controller
                 name={name}
                 control={control}
-                render={({field: {onChange, value}}) => (
+                render={({field: {onChange, value}}) => props?.helperText ? (
+                    <Tooltip title={props?.helperText} disableFocusListener>
+                        <Button className={props?.className} variant={value ? "contained" : "outlined"} onClick={() => onChange(!value)}>
+                            {props?.label}
+                        </Button>
+                    </Tooltip>
+                ) : (
                     <Button className={props?.className} variant={value ? "contained" : "outlined"} onClick={() => onChange(!value)}>
                         {props?.label}
                     </Button>
                 )}
             />
-            {props?.helperText && <FormHelperText>{props?.helperText}</FormHelperText>}
         </>
     )
 }

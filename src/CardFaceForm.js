@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useForm} from "react-hook-form";
 import {
     ControlledAutocomplete as Autocomplete,
@@ -9,251 +9,313 @@ import {cardTypeToManaCostMultiplier} from "./options";
 import {Row} from "./FormStyling";
 import {Divider, Typography, useMediaQuery, useTheme} from "@mui/material";
 import {LargeScreen, SmallScreen} from "./Breakpoints";
+import {getFormConfig} from "./formConfig";
+
+export const Variable = ({label, multiplier, value}) => {
+    if (!value || value < 1) return null
+    if (typeof value === "boolean") return <span>{label} (<span className={"text-success fw-bold"}>{multiplier}</span>)</span>
+    if (multiplier > 1) return <span>{label} ({multiplier}*<span
+        className={"text-success fw-bold"}>{value}</span>)</span>
+    return <span>{label} (<span className={"text-success fw-bold"}>{value}</span>)</span>
+}
 
 const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
-    const { control, setValue, watch, getValues, reset, setError } = useForm({
+    const {control, setValue, watch, getValues} = useForm({
         defaultValues: {exp: 0, ...defaultValues}
     })
 
     const {
-        cardType,
-        convertedManaCost,
-        xOrStar,
-        playersCant,
-        legendary,
+        cardType, convertedManaCost, xOrStar,
+        playersCant, legendary,
 
         // Instant/Sorcery
-        damage, // Damage/life lost to opponent
-        life, // Life gained
-        cardsDrawn, // Cards drawn
-        cardsLookedAt, // Cards looked at and not drawn
-        creaturesRemoved, // Creatures destroyed or removed
-        extraTurns, // Extra turns added
-        tutorsTop, // Tutors to the top of library?
-        tutorsBoard, // Tutors to the hand or board?
-        countersSpell, // Counters a spell?
-        landRemoved, // Destroys or removes a land?
-        cardsDiscarded, // Cards opponent discards
-        storm, // Has storm?
-        cascade, // Has cascade?
-        monarchOrInit, // Adds Monarch or Initiative?
-        boardWipe, // Can wipe the board?
-        wordyAbilities, // Wordy abilities
+        damage,
+        life,
+        cardsDrawn,
+        cardsLookedAt,
+        creaturesRemoved,
+        extraTurns,
+        tutorsTop,
+        tutorsBoard,
+        countersSpell,
+        landRemoved,
+        cardsDiscarded,
+        storm,
+        cascade,
+        monarchOrInit,
+        boardWipe,
+        wordyAbilities,
 
         // Non-Creature Artifacts
-        nonManaAbilities, // Non-Mana Abilities
-        // wordyAbilities, // Wordy abilities
-        addedMana, // Amount of mana added
+        nonManaAbilities,
+        // wordyAbilities,
+        addedMana,
 
         // Non-Creature Enchantment/Battle
-        abilities, // Number of abilities
-        // wordyAbilities, // Wordy abilities
-        beginsInPlay, // Can begin in play?
-        controlPermanent, // Can gain control of a permanent?
-        pacify, // Can pacify, arrest, or exile?
+        abilities,
+        // wordyAbilities,
+        beginsInPlay,
+        controlPermanent,
+        pacify,
 
         // Non-Basic Land
-        colorsProducedOrFetched, // Number of colors produced or lands fetched
-        landType, // Number of basic land types
-        subType, // Has a land subtype?
-        manLand, // Can make or become a creature?
-        // nonManaAbilities, // Non-Mana Abilities ^(Not including coming into play tapped or untapped)
-        untapped, // Comes in untapped?
-        // addedMana, // Amount of mana added in a turn
+        colorsProducedOrFetched,
+        landType,
+        subType,
+        manLand,
+        // nonManaAbilities,
+        untapped,
+        // addedMana,
 
         // Planeswalker
-        loyalty, // Starting loyalty
-        plusAbilities, // Number of plus abilities
-        minusAbilities, // Number of minus abilities
-        staticAbilities, // Number of static abilities
+        loyalty,
+        plusAbilities,
+        minusAbilities,
+        staticAbilities,
 
-        // Creature
-        power, // Creature power
-        toughness, // Creature toughness
-        // abilities, // Number of abilities
-        // wordyAbilities, // Wordy abilities
-        evasionAbilities, // Number of evasion abilities ^(Flying, Shadow, Menace, Trample, etc.)
-        protectionAbilities, // Number of protection abilities ^(Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc.)
-        stupidAbilities, // Number of inherently stupid abilities ^(Specifically: Annihilator, Infect, Cascade, & Affinity)
-        creatureRemoved, // Removes another creature?
-        // monarchOrInit, // Adds Monarch or Initiative?
-        searchesLibrary, // Triggers a search of a library?
-        manaAbility, // Has a mana ability?
+        // Creatures
+        power, powerAboveVanilla,
+        toughness, toughnessAboveVanilla,
+        // abilities,
+        // wordyAbilities,
+        evasionAbilities,
+        protectionAbilities,
+        stupidAbilities,
+        // creaturesRemoved,
+        manaAbilities,
+        // monarchOrInit,
+        searchesLibrary,
     } = watch()
 
     useEffect(() => {
+        setValue("powerAboveVanilla", power > convertedManaCost ? power - convertedManaCost : 0)
+    }, [setValue, convertedManaCost, power])
+
+    useEffect(() => {
+        setValue("toughnessAboveVanilla", toughness > convertedManaCost ? toughness - convertedManaCost : 0)
+    }, [setValue, convertedManaCost, toughness])
+
+    useEffect(() => {
+        const formConfig = getFormConfig(cardType?.label)
+        let equation = []
+
         let expCost = convertedManaCost * cardType?.value
-        switch (cardType?.label) {
-            case "Non-Creature Artifact":
-                expCost += nonManaAbilities * 2
-                expCost += wordyAbilities * 4
-                expCost += addedMana * 5
-                break
-            case "Non-Creature Enchantment/Battle":
-                expCost += abilities * 2
-                expCost += wordyAbilities * 4
-                expCost += beginsInPlay ? 5 : 0
-                expCost += controlPermanent ? 9 : 0
-                expCost += pacify ? 8 : 0
-                break
-            case "Non-Basic Land":
-                expCost += colorsProducedOrFetched * 3
-                expCost += landType ? 5 : 0
-                expCost += subType ? 5 : 0
-                expCost += manLand ? 5 : 0
-                expCost += nonManaAbilities * 3
-                expCost += untapped ? 4 : 0
-                if (addedMana >= 4){
+        if (cardType?.label !== "Non-Basic Land"){
+            equation.push(
+                <span>
+                CMC [(<span className={"text-success fw-bold"}>{convertedManaCost}</span>) * {cardType?.label} (<span className={"text-success fw-bold"}>{cardType?.value}</span>)]
+            </span>
+            )
+        }
+
+        // Anything with X or * in the casting cost or power/toughness incurs an additional 4-point cost.
+        expCost += xOrStar * 4
+        equation.push(<Variable label={"X/★"} multiplier={4} value={xOrStar}/>)
+
+        // +5 points if it includes text like "players/opponents can’t".
+        expCost += playersCant * 5
+        equation.push(<Variable label={"Player Can't"} multiplier={5} value={playersCant}/>)
+
+        // +3 more points if it is Legendary.
+        expCost += legendary * 3
+        equation.push(<Variable label={"Legendary"} multiplier={3} value={legendary}/>)
+        for (let attributeName in formConfig) {
+            const attribute = formConfig[attributeName]
+            if (cardType?.label === "Non-Basic Land" && attributeName === "addedMana"){
+                let value = null
+                if (getValues(attributeName) >=4) {
+                    value = "5 + 7 + 9"
                     expCost += 5 + 7 + 9
                 }
-                else if (addedMana === 3) {
+                else if (getValues(attributeName) >=3) {
+                    value = "5 + 7"
                     expCost += 5 + 7
                 }
-                else if (addedMana === 2) {
+                else if (getValues(attributeName) >=2) {
+                    value = "5"
                     expCost += 5
                 }
-                break
-            case "Planeswalker":
-                expCost += loyalty * 3
-                expCost += plusAbilities * 3
-                expCost += minusAbilities * 1
-                expCost += staticAbilities * 3
-                break
-            case "Creature":
-                expCost += power > convertedManaCost ? power - convertedManaCost : 0
-                expCost += toughness > convertedManaCost ? toughness - convertedManaCost : 0
-                expCost += abilities * 1
-                expCost += wordyAbilities * 3
-                expCost += evasionAbilities * 2
-                expCost += protectionAbilities * 2
-                expCost += stupidAbilities * 5
-
-                expCost += creaturesRemoved ? 7 : 0
-                expCost += monarchOrInit ? 10 : 0
-                expCost += searchesLibrary ? 5 : 0
-                expCost += manaAbility ? 5 : 0
-
-                break
-            default:
-                expCost += damage * 2
-                expCost += life * 1
-                expCost += cardsDrawn * 3
-                expCost += cardsLookedAt * 1
-                expCost += creaturesRemoved * 8
-                expCost += extraTurns * 20
-                expCost += tutorsTop ? 9 : 0
-                expCost += tutorsBoard ? 11 : 0
-                expCost += countersSpell ? 9 : 0
-                expCost += landRemoved ? 7 : 0
-                expCost += cardsDiscarded * 3
-                expCost += storm ? 8 : 0
-                expCost += cascade ? 5 : 0
-                expCost += monarchOrInit ? 10 : 0
-                expCost += boardWipe ? 10 : 0
-                expCost += wordyAbilities * 3
-                break
+                equation.push(<Variable label={attribute.label.equation}
+                                        multiplier={attribute.multiplier}
+                                        value={value}
+                />)
+            }
+            else {
+                expCost += getValues(attributeName) * attribute.multiplier
+                equation.push(<Variable label={attribute.label.equation}
+                                        multiplier={attribute.multiplier}
+                                        value={getValues(attributeName)}
+                />)
+            }
         }
-        expCost += xOrStar ? 4 : 0
-        expCost += playersCant ? 5 : 0
-        expCost += legendary ? 3 : 0
+
         setValue("exp", expCost)
-        onChange(expCost)
-    }, [convertedManaCost, cardType, xOrStar, playersCant, legendary, damage, life, cardsDrawn, cardsLookedAt, creaturesRemoved, extraTurns, tutorsTop, tutorsBoard, countersSpell, landRemoved, cardsDiscarded, storm, cascade, monarchOrInit, boardWipe, wordyAbilities, nonManaAbilities, addedMana, abilities, beginsInPlay, controlPermanent, pacify, colorsProducedOrFetched, landType, subType, manLand, untapped, loyalty, plusAbilities, minusAbilities, staticAbilities, power, toughness, evasionAbilities, protectionAbilities, stupidAbilities, creatureRemoved, searchesLibrary, manaAbility, setValue])
+        onChange(expCost, equation)
+    }, [
+        setValue, cardType?.label, cardType?.value, convertedManaCost, xOrStar, playersCant, legendary, getValues,
+        damage,
+        life,
+        cardsDrawn,
+        cardsLookedAt,
+        creaturesRemoved,
+        extraTurns,
+        tutorsTop,
+        tutorsBoard,
+        countersSpell,
+        landRemoved,
+        cardsDiscarded,
+        storm,
+        cascade,
+        monarchOrInit,
+        boardWipe,
+        wordyAbilities,
+
+        nonManaAbilities,
+        addedMana,
+
+        abilities,
+        beginsInPlay,
+        controlPermanent,
+        pacify,
+
+        colorsProducedOrFetched,
+        landType,
+        subType,
+        manLand,
+        untapped,
+
+        loyalty,
+        plusAbilities,
+        minusAbilities,
+        staticAbilities,
+
+        powerAboveVanilla, toughnessAboveVanilla,
+        evasionAbilities,
+        protectionAbilities,
+        stupidAbilities,
+        manaAbilities,
+        searchesLibrary,
+    ])
 
 
     const cardTypeForm = () => {
+        const formConfig = getFormConfig(cardType?.label)
         switch (cardType?.label) {
             case "Creature":
                 return (
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"power"} label={"Creature power"}
-                                           type={"number"} control={control}
+                                <TextField name={"power"} type={"number"} control={control}
+                                           label={formConfig.powerAboveVanilla.label.smallScreen}
+                                           helperText={formConfig.powerAboveVanilla.helperText}
                                 />
-                                <TextField name={"toughness"} label={"Creature toughness"}
-                                           type={"number"} control={control}
-                                />
-                            </Row>
-                            <Row>
-                                <TextField name={"abilities"} label={"Number of abilities"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"toughness"} type={"number"} control={control}
+                                           label={formConfig.toughnessAboveVanilla.label.smallScreen}
+                                           helperText={formConfig.toughnessAboveVanilla.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"evasionAbilities"} label={"Evasion abilities"}
-                                           helperText={"Flying, Shadow, Menace, Trample, etc."}
-                                           type={"number"} control={control}
+                                <TextField name={"abilities"} type={"number"} control={control}
+                                           label={formConfig.abilities.label.smallScreen}
+                                           helperText={formConfig.abilities.helperText}
                                 />
-                                <TextField name={"protectionAbilities"} label={"Protection abilities"}
-                                           helperText={"Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc."}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"stupidAbilities"} label={"Stupid abilities"}
-                                           helperText={"Specifically: Annihilator, Infect, Cascade, & Affinity"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.smallScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"creaturesRemoved"} label={"Creatures destroyed or removed"}
-                                           type={"number"} control={control}
+                                <TextField name={"evasionAbilities"} type={"number"} control={control}
+                                           label={formConfig.evasionAbilities.label.smallScreen}
+                                           helperText={formConfig.evasionAbilities.helperText}
                                 />
-                                <TextField name={"manaAbilities"} label={"Number of mana abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"protectionAbilities"} type={"number"} control={control}
+                                           label={formConfig.protectionAbilities.label.smallScreen}
+                                           helperText={formConfig.protectionAbilities.helperText}
+                                />
+                                <TextField name={"stupidAbilities"} type={"number"} control={control}
+                                           label={formConfig.stupidAbilities.label.smallScreen}
+                                           helperText={formConfig.stupidAbilities.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"monarchOrInit"} label={"Monarch/Initiative"} control={control}/>
-                                <Toggle name={"searchesLibrary"} label={"Searches library"} control={control}/>
+                                <TextField name={"creaturesRemoved"} type={"number"} control={control}
+                                           label={formConfig.creaturesRemoved.label.smallScreen}
+                                           helperText={formConfig.creaturesRemoved.helperText}
+                                />
+                                <TextField name={"manaAbilities"} type={"number"} control={control}
+                                           label={formConfig.manaAbilities.label.smallScreen}
+                                           helperText={formConfig.manaAbilities.helperText}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"monarchOrInit"} control={control}
+                                        label={formConfig.monarchOrInit.label.smallScreen}
+                                        helperText={formConfig.monarchOrInit.helperText}
+                                />
+                                <Toggle name={"searchesLibrary"} control={control}
+                                        label={formConfig.searchesLibrary.label.smallScreen}
+                                        helperText={formConfig.searchesLibrary.helperText}
+                                />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"power"} label={"Creature power"}
-                                           type={"number"} control={control}
+                                <TextField name={"power"} type={"number"} control={control}
+                                           label={formConfig.powerAboveVanilla.label.largeScreen}
+                                           helperText={formConfig.powerAboveVanilla.helperText}
                                 />
-                                <TextField name={"toughness"} label={"Creature toughness"}
-                                           type={"number"} control={control}
-                                />
-                            </Row>
-                            <Row>
-                                <TextField name={"abilities"} label={"Number of abilities"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"toughness"} type={"number"} control={control}
+                                           label={formConfig.toughnessAboveVanilla.label.largeScreen}
+                                           helperText={formConfig.toughnessAboveVanilla.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"evasionAbilities"} label={"Number of evasion abilities"}
-                                           helperText={"Flying, Shadow, Menace, Trample, etc."}
-                                           type={"number"} control={control}
+                                <TextField name={"abilities"} type={"number"} control={control}
+                                           label={formConfig.abilities.label.largeScreen}
+                                           helperText={formConfig.abilities.helperText}
                                 />
-                                <TextField name={"protectionAbilities"} label={"Number of protection abilities"}
-                                           helperText={"Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc."}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"stupidAbilities"} label={"Number of stupid abilities"}
-                                           helperText={"Specifically: Annihilator, Infect, Cascade, & Affinity"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.largeScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"creaturesRemoved"} label={"Number of creatures destroyed or removed"}
-                                           type={"number"} control={control}
+                                <TextField name={"evasionAbilities"} type={"number"} control={control}
+                                           label={formConfig.evasionAbilities.label.largeScreen}
+                                           helperText={formConfig.evasionAbilities.helperText}
                                 />
-                                <TextField name={"manaAbilities"} label={"Number of mana abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"protectionAbilities"} type={"number"} control={control}
+                                           label={formConfig.protectionAbilities.label.largeScreen}
+                                           helperText={formConfig.protectionAbilities.helperText}
+                                />
+                                <TextField name={"stupidAbilities"} type={"number"} control={control}
+                                           label={formConfig.stupidAbilities.label.largeScreen}
+                                           helperText={formConfig.stupidAbilities.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"monarchOrInit"} label={"Monarch/Initiative"} control={control}/>
-                                <Toggle name={"searchesLibrary"} label={"Searches library"} control={control}/>
+                                <TextField name={"creaturesRemoved"} type={"number"} control={control}
+                                           label={formConfig.creaturesRemoved.label.largeScreen}
+                                           helperText={formConfig.creaturesRemoved.helperText}
+                                />
+                                <TextField name={"manaAbilities"} type={"number"} control={control}
+                                           label={formConfig.manaAbilities.label.largeScreen}
+                                           helperText={formConfig.manaAbilities.helperText}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"monarchOrInit"} control={control}
+                                        label={formConfig.monarchOrInit.label.largeScreen}
+                                        helperText={formConfig.monarchOrInit.helperText}
+                                />
+                                <Toggle name={"searchesLibrary"} control={control}
+                                        label={formConfig.searchesLibrary.label.largeScreen}
+                                        helperText={formConfig.searchesLibrary.helperText}
+                                />
                             </Row>
                         </LargeScreen>
                     </>
@@ -263,27 +325,33 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"nonManaAbilities"} label={"Non-mana abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"nonManaAbilities"} type={"number"} control={control}
+                                           label={formConfig.nonManaAbilities.label.smallScreen}
+                                           helperText={formConfig.nonManaAbilities.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.smallScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
-                                <TextField name={"addedMana"} label={"Mana added in a turn"}
-                                           type={"number"} control={control}
+                                <TextField name={"addedMana"} type={"number"} control={control}
+                                           label={formConfig.addedMana.label.smallScreen}
+                                           helperText={formConfig.addedMana.helperText}
                                 />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"nonManaAbilities"} label={"Number of non-mana abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"nonManaAbilities"} type={"number"} control={control}
+                                           label={formConfig.nonManaAbilities.label.largeScreen}
+                                           helperText={formConfig.nonManaAbilities.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.largeScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
-                                <TextField name={"addedMana"} label={"Amount of mana added in a turn"}
-                                           type={"number"} control={control}
+                                <TextField name={"addedMana"} type={"number"} control={control}
+                                           label={formConfig.addedMana.label.largeScreen}
+                                           helperText={formConfig.addedMana.helperText}
                                 />
                             </Row>
                         </LargeScreen>
@@ -294,36 +362,58 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"abilities"} label={"Number of abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"abilities"} type={"number"} control={control}
+                                           label={formConfig.abilities.label.smallScreen}
+                                           helperText={formConfig.abilities.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.smallScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"beginsInPlay"} label={"Begins in play"} control={control}/>
+                                <Toggle name={"beginsInPlay"} control={control}
+                                        label={formConfig.beginsInPlay.label.smallScreen}
+                                        helperText={formConfig.beginsInPlay.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"controlPermanent"} label={"Controls a permanent"} control={control}/>
+                                <Toggle name={"controlPermanent"} control={control}
+                                        label={formConfig.controlPermanent.label.smallScreen}
+                                        helperText={formConfig.controlPermanent.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"pacify"} label={"pacify/arrest/exile"} control={control}/>
+                                <Toggle name={"pacify"} control={control}
+                                        label={formConfig.pacify.label.smallScreen}
+                                        helperText={formConfig.pacify.helperText}
+                                />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"abilities"} label={"Number of abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"abilities"} type={"number"} control={control}
+                                           label={formConfig.pacify.label.largeScreen}
+                                           helperText={formConfig.pacify.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.pacify.label.largeScreen}
+                                           helperText={formConfig.pacify.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"beginsInPlay"} label={"Begins in play"} control={control}/>
-                                <Toggle name={"controlPermanent"} label={"Control a permanent"} control={control}/>
-                                <Toggle name={"pacify"} label={"pacify/arrest/exile"} control={control}/>
+                                <Toggle name={"beginsInPlay"} control={control}
+                                        label={formConfig.beginsInPlay.label.largeScreen}
+                                        helperText={formConfig.beginsInPlay.helperText}
+                                />
+                                <Toggle name={"controlPermanent"} control={control}
+                                        label={formConfig.controlPermanent.label.largeScreen}
+                                        helperText={formConfig.controlPermanent.helperText}
+                                />
+                                <Toggle name={"pacify"} control={control}
+                                        label={formConfig.pacify.label.largeScreen}
+                                        helperText={formConfig.pacify.helperText}
+                                />
                             </Row>
                         </LargeScreen>
                     </>
@@ -333,46 +423,74 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"nonManaAbilities"} label={"Non-Mana Abilities"}
-                                           helperText={"Not including coming into play tapped or untapped"}
-                                           type={"number"} control={control}
+                                <TextField name={"nonManaAbilities"} type={"number"} control={control}
+                                           label={formConfig.nonManaAbilities.label.smallScreen}
+                                           helperText={formConfig.nonManaAbilities.helperText}
                                 />
-                                <TextField name={"addedMana"} label={"Amount of mana added in a turn"}
-                                           type={"number"} control={control}
-                                />
-                            </Row>
-                            <Row>
-                                <TextField name={"colorsProducedOrFetched"} label={"Number of colors produced or lands fetched"}
-                                           type={"number"} control={control}
+                                <TextField name={"addedMana"} type={"number"} control={control}
+                                           label={formConfig.addedMana.label.smallScreen}
+                                           helperText={formConfig.addedMana.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"landType"} label={"Basic land type"} control={control}/>
-                                <Toggle name={"subType"} label={"Subtype"} control={control}/>
+                                <TextField name={"colorsProducedOrFetched"} type={"number"} control={control}
+                                           label={formConfig.colorsProducedOrFetched.label.smallScreen}
+                                           helperText={formConfig.colorsProducedOrFetched.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"manLand"} label={"Make/become creature"} control={control}/>
-                                <Toggle name={"untapped"} label={"Untapped"} control={control}/>
+                                <Toggle name={"landType"} control={control}
+                                        label={formConfig.landType.label.smallScreen}
+                                        helperText={formConfig.landType.helperText}
+                                />
+                                <Toggle name={"subType"} control={control}
+                                        label={formConfig.subType.label.smallScreen}
+                                        helperText={formConfig.subType.helperText}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"manLand"} control={control}
+                                        label={formConfig.manLand.label.smallScreen}
+                                        helperText={formConfig.manLand.helperText}
+                                />
+                                <Toggle name={"untapped"} control={control}
+                                        label={formConfig.untapped.label.smallScreen}
+                                        helperText={formConfig.untapped.helperText}
+                                />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"nonManaAbilities"} label={"Non-Mana Abilities"}
-                                           helperText={"Not including coming into play tapped or untapped"}
-                                           type={"number"} control={control}
+                                <TextField name={"nonManaAbilities"} type={"number"} control={control}
+                                           label={formConfig.nonManaAbilities.label.largeScreen}
+                                           helperText={formConfig.nonManaAbilities.helperText}
                                 />
-                                <TextField name={"addedMana"} label={"Amount of mana added in a turn"}
-                                           type={"number"} control={control}
+                                <TextField name={"addedMana"} type={"number"} control={control}
+                                           label={formConfig.addedMana.label.largeScreen}
+                                           helperText={formConfig.addedMana.helperText}
                                 />
-                                <TextField name={"colorsProducedOrFetched"} label={"Number of colors produced or lands fetched"}
-                                           type={"number"} control={control}
+                                <TextField name={"colorsProducedOrFetched"} type={"number"} control={control}
+                                           label={formConfig.colorsProducedOrFetched.label.largeScreen}
+                                           helperText={formConfig.colorsProducedOrFetched.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"landType"} label={"Basic land type"} control={control}/>
-                                <Toggle name={"subType"} label={"Subtype"} control={control}/>
-                                <Toggle name={"manLand"} label={"Make/become creature"} control={control}/>
-                                <Toggle name={"untapped"} label={"Untapped"} control={control}/>
+                                <Toggle name={"landType"} control={control}
+                                        label={formConfig.landType.label.largeScreen}
+                                        helperText={formConfig.landType.helperText}
+                                />
+                                <Toggle name={"subType"} control={control}
+                                        label={formConfig.subType.label.largeScreen}
+                                        helperText={formConfig.subType.helperText}
+                                />
+                                <Toggle name={"manLand"} control={control}
+                                        label={formConfig.manLand.label.largeScreen}
+                                        helperText={formConfig.manLand.helperText}
+                                />
+                                <Toggle name={"untapped"} control={control}
+                                        label={formConfig.untapped.label.largeScreen}
+                                        helperText={formConfig.untapped.helperText}
+                                />
                             </Row>
                         </LargeScreen>
                     </>
@@ -382,37 +500,45 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"loyalty"} label={"Starting loyalty"}
-                                           type={"number"} control={control}
+                                <TextField name={"loyalty"} type={"number"} control={control}
+                                           label={formConfig.loyalty.label.smallScreen}
+                                           helperText={formConfig.loyalty.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"plusAbilities"} label={"Plus (or 0) abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"plusAbilities"} type={"number"} control={control}
+                                           label={formConfig.plusAbilities.label.smallScreen}
+                                           helperText={formConfig.plusAbilities.helperText}
                                 />
-                                <TextField name={"minusAbilities"} label={"Minus abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"minusAbilities"} type={"number"} control={control}
+                                           label={formConfig.minusAbilities.label.smallScreen}
+                                           helperText={formConfig.minusAbilities.helperText}
                                 />
-                                <TextField name={"staticAbilities"} label={"Static abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"staticAbilities"} type={"number"} control={control}
+                                           label={formConfig.staticAbilities.label.smallScreen}
+                                           helperText={formConfig.staticAbilities.helperText}
                                 />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"loyalty"} label={"Starting loyalty"}
-                                           type={"number"} control={control}
+                                <TextField name={"loyalty"} type={"number"} control={control}
+                                           label={formConfig.loyalty.label.largeScreen}
+                                           helperText={formConfig.loyalty.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"plusAbilities"} label={"Number of plus (or 0) abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"plusAbilities"} type={"number"} control={control}
+                                           label={formConfig.plusAbilities.label.largeScreen}
+                                           helperText={formConfig.plusAbilities.helperText}
                                 />
-                                <TextField name={"minusAbilities"} label={"Number of minus abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"minusAbilities"} type={"number"} control={control}
+                                           label={formConfig.minusAbilities.label.largeScreen}
+                                           helperText={formConfig.minusAbilities.helperText}
                                 />
-                                <TextField name={"staticAbilities"} label={"Number of static abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"staticAbilities"} type={"number"} control={control}
+                                           label={formConfig.staticAbilities.label.largeScreen}
+                                           helperText={formConfig.staticAbilities.helperText}
                                 />
                             </Row>
                         </LargeScreen>
@@ -423,94 +549,158 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     <>
                         <SmallScreen>
                             <Row>
-                                <TextField name={"damage"} label={"Damage/life lost"}
-                                           type={"number"} control={control}
+                                <TextField name={"damage"} type={"number"} control={control}
+                                           label={formConfig.damage.label.smallScreen}
+                                           helperText={formConfig.damage.helperText}
                                 />
-                                <TextField name={"life"} label={"Life gained by player"}
-                                           type={"number"} control={control}
+                                <TextField name={"life"} type={"number"} control={control}
+                                           label={formConfig.life.label.smallScreen}
+                                           helperText={formConfig.life.helperText}
                                 />
-                                <TextField name={"creaturesRemoved"} label={"Creatures killed"}
-                                           type={"number"} control={control}
-                                />
-                            </Row>
-                            <Row>
-                                <TextField name={"cardsDrawn"} label={"Cards drawn by player"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"cardsDiscarded"} label={"Opponent discards"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"cardsLookedAt"} label={"Cards looked at"}
-                                           type={"number"} control={control}
+                                <TextField name={"creaturesRemoved"} type={"number"} control={control}
+                                           label={formConfig.creaturesRemoved.label.smallScreen}
+                                           helperText={formConfig.creaturesRemoved.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"extraTurns"} label={"Extra turns added"}
-                                           type={"number"} control={control}
+                                <TextField name={"cardsDrawn"} type={"number"} control={control}
+                                           label={formConfig.cardsDrawn.label.smallScreen}
+                                           helperText={formConfig.cardsDrawn.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"cardsDiscarded"} type={"number"} control={control}
+                                           label={formConfig.cardsDiscarded.label.smallScreen}
+                                           helperText={formConfig.cardsDiscarded.helperText}
+                                />
+                                <TextField name={"cardsLookedAt"} type={"number"} control={control}
+                                           label={formConfig.cardsLookedAt.label.smallScreen}
+                                           helperText={formConfig.cardsLookedAt.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"tutorsTop"} label={"Tutors to top"} control={control}/>
-                                <Toggle name={"tutorsBoard"} label={"Tutors to hand/board"} control={control}/>
+                                <TextField name={"extraTurns"} type={"number"} control={control}
+                                           label={formConfig.extraTurns.label.smallScreen}
+                                           helperText={formConfig.extraTurns.helperText}
+                                />
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.smallScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"countersSpell"} label={"Counters spells"} control={control}/>
-                                <Toggle name={"landRemoved"} label={"Destroys/removes land"} control={control}/>
+                                <Toggle name={"tutorsTop"} control={control}
+                                        label={formConfig.tutorsTop.label.smallScreen}
+                                        helperText={formConfig.tutorsTop.helperText}
+                                />
+                                <Toggle name={"tutorsBoard"} control={control}
+                                        label={formConfig.tutorsBoard.label.smallScreen}
+                                        helperText={formConfig.tutorsBoard.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"storm"} label={"Storm"} control={control}/>
-                                <Toggle name={"cascade"} label={"Cascade"} control={control}/>
-                                <Toggle name={"boardWipe"} label={"Board wipe"} control={control} />
+                                <Toggle name={"countersSpell"} control={control}
+                                        label={formConfig.countersSpell.label.smallScreen}
+                                        helperText={formConfig.countersSpell.helperText}
+                                />
+                                <Toggle name={"landRemoved"} control={control}
+                                        label={formConfig.landRemoved.label.smallScreen}
+                                        helperText={formConfig.landRemoved.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"monarchOrInit"} label={"Adds Monarch/Initiative"} control={control}/>
+                                <Toggle name={"storm"} control={control}
+                                        label={formConfig.storm.label.smallScreen}
+                                        helperText={formConfig.storm.helperText}
+                                />
+                                <Toggle name={"cascade"} control={control}
+                                        label={formConfig.cascade.label.smallScreen}
+                                        helperText={formConfig.cascade.helperText}
+                                />
+                                <Toggle name={"boardWipe"} control={control}
+                                        label={formConfig.boardWipe.label.smallScreen}
+                                        helperText={formConfig.boardWipe.helperText}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"monarchOrInit"} control={control}
+                                        label={formConfig.monarchOrInit.label.smallScreen}
+                                        helperText={formConfig.monarchOrInit.helperText}
+                                />
                             </Row>
                         </SmallScreen>
                         <LargeScreen>
                             <Row>
-                                <TextField name={"damage"} label={"Damage/life lost to opponent"}
-                                           type={"number"} control={control}
+                                <TextField name={"damage"} type={"number"} control={control}
+                                           label={formConfig.damage.label.largeScreen}
+                                           helperText={formConfig.damage.helperText}
                                 />
-                                <TextField name={"life"} label={"Life gained"}
-                                           type={"number"} control={control}
+                                <TextField name={"life"} type={"number"} control={control}
+                                           label={formConfig.life.label.largeScreen}
+                                           helperText={formConfig.life.helperText}
                                 />
-                                <TextField name={"creaturesRemoved"} label={"Creatures destroyed or removed"}
-                                           type={"number"} control={control}
-                                />
-                            </Row>
-                            <Row>
-                                <TextField name={"cardsDrawn"} label={"Cards drawn"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"cardsDiscarded"} label={"Cards opponent discards"}
-                                           type={"number"} control={control}
-                                />
-                                <TextField name={"cardsLookedAt"} label={"Cards looked at and not drawn"}
-                                           type={"number"} control={control}
+                                <TextField name={"creaturesRemoved"} type={"number"} control={control}
+                                           label={formConfig.creaturesRemoved.label.largeScreen}
+                                           helperText={formConfig.creaturesRemoved.helperText}
                                 />
                             </Row>
                             <Row>
-                                <TextField name={"extraTurns"} label={"Extra turns added"}
-                                           type={"number"} control={control}
+                                <TextField name={"cardsDrawn"} type={"number"} control={control}
+                                           label={formConfig.cardsDrawn.label.largeScreen}
+                                           helperText={formConfig.cardsDrawn.helperText}
                                 />
-                                <TextField name={"wordyAbilities"} label={"Wordy abilities"}
-                                           type={"number"} control={control}
+                                <TextField name={"cardsDiscarded"} type={"number"} control={control}
+                                           label={formConfig.cardsDiscarded.label.largeScreen}
+                                           helperText={formConfig.cardsDiscarded.helperText}
+                                />
+                                <TextField name={"cardsLookedAt"} type={"number"} control={control}
+                                           label={formConfig.cardsLookedAt.label.largeScreen}
+                                           helperText={formConfig.cardsLookedAt.helperText}
                                 />
                             </Row>
                             <Row>
-                                <Toggle name={"tutorsTop"} label={"Tutors to top"} control={control}/>
-                                <Toggle name={"tutorsBoard"} label={"Tutors to hand/board"} control={control}/>
-                                <Toggle name={"countersSpell"} label={"Counters spells"} control={control}/>
-                                <Toggle name={"landRemoved"} label={"Destroys/removes land"} control={control}/>
+                                <TextField name={"extraTurns"} type={"number"} control={control}
+                                           label={formConfig.extraTurns.label.largeScreen}
+                                           helperText={formConfig.extraTurns.helperText}
+                                />
+                                <TextField name={"wordyAbilities"} type={"number"} control={control}
+                                           label={formConfig.wordyAbilities.label.largeScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
+                                />
                             </Row>
                             <Row>
-                                <Toggle name={"storm"} label={"Storm"} control={control}/>
-                                <Toggle name={"cascade"} label={"Cascade"} control={control}/>
-                                <Toggle name={"monarchOrInit"} label={"Adds Monarch/Initiative"} control={control}/>
-                                <Toggle name={"boardWipe"} label={"Board wipe"} control={control} />
+                                <Toggle name={"tutorsTop"} control={control}
+                                        label={formConfig.tutorsTop.label.largeScreen}
+                                        helperText={formConfig.tutorsTop.helperText}
+                                />
+                                <Toggle name={"tutorsBoard"} control={control}
+                                        label={formConfig.tutorsBoard.label.largeScreen}
+                                        helperText={formConfig.tutorsBoard.helperText}
+                                />
+                                <Toggle name={"countersSpell"} control={control}
+                                        label={formConfig.countersSpell.label.largeScreen}
+                                        helperText={formConfig.countersSpell.helperText}
+                                />
+                                <Toggle name={"landRemoved"} control={control}
+                                        label={formConfig.landRemoved.label.largeScreen}
+                                        helperText={formConfig.landRemoved.helperText}
+                                />
+                            </Row>
+                            <Row>
+                                <Toggle name={"storm"} control={control}
+                                        label={formConfig.storm.label.largeScreen}
+                                        helperText={formConfig.storm.helperText}
+                                />
+                                <Toggle name={"cascade"} control={control}
+                                        label={formConfig.cascade.label.largeScreen}
+                                        helperText={formConfig.cascade.helperText}
+                                />
+                                <Toggle name={"monarchOrInit"} control={control}
+                                        label={formConfig.monarchOrInit.label.largeScreen}
+                                        helperText={formConfig.monarchOrInit.helperText}
+                                />
+                                <Toggle name={"boardWipe"} control={control}
+                                        label={formConfig.boardWipe.label.largeScreen}
+                                        helperText={formConfig.boardWipe.helperText}
+                                />
                             </Row>
                         </LargeScreen>
                     </>
@@ -528,33 +718,58 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                     </Row>
                 )}
                 <Row>
-                    <TextField name={"convertedManaCost"} label={"CMC"}
-                               type={"number"} control={control}
-                    />
+                    {cardType?.value !== 0 && (
+                        <TextField name={"convertedManaCost"} label={"CMC"}
+                                   type={"number"} control={control}
+                        />
+                    )}
                     <Autocomplete name={"cardType"} label={"Card Type"}
                                   options={cardTypeToManaCostMultiplier} control={control}
                     />
 
                 </Row>
                 <Row>
-                    <Toggle name={"legendary"} control={control} label={"Legendary"}/>
                     <Toggle name={"xOrStar"} control={control} label={"X/★"}/>
                     <Toggle name={"playersCant"} control={control} label={"Players can't"}/>
+                    <Toggle name={"legendary"} control={control} label={"Legendary"}/>
                 </Row>
             </SmallScreen>
             <LargeScreen>
-                <Row>
-                    <TextField name={"convertedManaCost"} label={"Converted Mana Cost"} type={"number"} control={control}/>
-                    <Autocomplete name={"cardType"} label={"Card Type"}
-                                  options={cardTypeToManaCostMultiplier} control={control}
-                    />
-                    {showExp && <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>}
-                </Row>
-                <Row>
-                    <Toggle name={"legendary"} control={control} label={"Legendary"}/>
-                    <Toggle name={"xOrStar"} control={control} label={"X or ★"}/>
-                    <Toggle name={"playersCant"} control={control} label={"Players/Opponents can't"}/>
-                </Row>
+                {cardType?.value === 0 && !showExp ? (
+                    <>
+                        <Row>
+                            <div className={"w-25"}>
+                                <Autocomplete name={"cardType"} label={"Card Type"}
+                                              options={cardTypeToManaCostMultiplier} control={control}
+                                />
+                            </div>
+                            <Row className={"w-75 pt-5"}>
+                                <Toggle name={"xOrStar"} control={control} label={"X or ★"}/>
+                                <Toggle name={"playersCant"} control={control} label={"Players/Opponents can't"}/>
+                                <Toggle name={"legendary"} control={control} label={"Legendary"}/>
+                            </Row>
+                        </Row>
+                    </>
+                ) : (
+                    <>
+                        <Row>
+                            {cardType?.value !== 0 && (
+                                <TextField name={"convertedManaCost"} label={"CMC"}
+                                           type={"number"} control={control}
+                                />
+                            )}
+                            <Autocomplete name={"cardType"} label={"Card Type"}
+                                          options={cardTypeToManaCostMultiplier} control={control}
+                            />
+                            {showExp && <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>}
+                        </Row>
+                        <Row>
+                            <Toggle name={"xOrStar"} control={control} label={"X or ★"}/>
+                            <Toggle name={"playersCant"} control={control} label={"Players/Opponents can't"}/>
+                            <Toggle name={"legendary"} control={control} label={"Legendary"}/>
+                        </Row>
+                    </>
+                )}
             </LargeScreen>
 
             {cardTypeForm()}
