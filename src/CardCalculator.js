@@ -30,7 +30,7 @@ const CardCalculator = () => {
 
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
-            cardName: "Questing Beast",
+            cardName: "",
             exp: 0,
             cardRarity: {label: "Common", value: 1},
             banned: false,
