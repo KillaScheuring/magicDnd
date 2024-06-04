@@ -28,7 +28,7 @@ const CardCalculator = () => {
     const [cardImages, setCardImages] = useState([])
     const [oracleText, setOracleText] = useState("")
 
-    const { control, setValue, watch, getValues, reset, setError } = useForm({
+    const { control, setValue, watch, getValues, reset, setError, handleSubmit } = useForm({
         defaultValues: {
             cardName: "",
             exp: 0,
@@ -74,7 +74,8 @@ const CardCalculator = () => {
             })
     }
 
-    const handleSearch = () => {
+    const handleSearch = e => {
+        if (e) e.preventDefault()
         setSearching(true)
         setCardFlipped(false)
         axios.get("https://api.scryfall.com/cards/named", {params: {fuzzy: getValues("cardName").toLowerCase().replace(/  +/g, "+")}})
@@ -207,13 +208,13 @@ const CardCalculator = () => {
 
     return (
         <div className={`row ${smallDisplay ? "m-1" : "m-2"}`}>
-            <Box component="form" autoComplete="off" className={`w-${smallDisplay ? 90 : 50}`}>
+            <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
                 <Typography variant={"h4"}>Card Calculator</Typography>
                 <SmallScreen>
-                    <Row>
+                    <form onSubmit={handleSearch} className={"d-flex flex-row mb-3 gap-3"}>
                         <TextField name={"cardName"} label={"Card Name"} control={control}/>
-                        <Button variant={"contained"} className={"mt-5 mb-4"} onClick={handleSearch}>Search</Button>
-                    </Row>
+                        <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
+                    </form>
                     <Row>
                         <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
                         <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
@@ -221,10 +222,10 @@ const CardCalculator = () => {
                 </SmallScreen>
                 <LargeScreen>
                     <Row>
-                        <Row className={"w-50"}>
+                        <form onSubmit={handleSearch} className={"d-flex flex-row mb-3 gap-3 w-50"}>
                             <TextField name={"cardName"} label={"Card Name"} control={control}/>
-                            <Button variant={"contained"} className={"mt-5 mb-4"} onClick={handleSearch}>Search</Button>
-                        </Row>
+                            <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
+                        </form>
                         <Row className={"w-50"}>
                             <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
                             <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
