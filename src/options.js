@@ -24,6 +24,30 @@ export const cardTypeToManaCostMultiplier = [
     {label: "Creature", value: 1},
 ];
 
+export const evasionText = [
+    "can't be blocked",
+    "flying",
+    "shadow",
+    "menace",
+    "trample"
+]
+
+export const protectionText = [
+    "protection from",
+    "hexproof",
+    "shroud",
+    "ward",
+    "regenerate",
+    "indestructible"
+]
+
+export const stupidText = [
+    "annihilator",
+    "infect",
+    "cascade",
+    "affinity"
+]
+
 export const bannedOrRestricted = [
     "Ali from Cairo",
     "Ancestral Recall",

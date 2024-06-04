@@ -30,13 +30,15 @@ const CardCalculator = () => {
 
     const { control, setValue, watch, getValues, reset, setError } = useForm({
         defaultValues: {
-            cardName: "",
+            cardName: "Questing Beast",
             exp: 0,
             cardRarity: {label: "Common", value: 1},
             banned: false,
             after2020: false,
         },
     })
+
+    const { cardRarity, banned, after2020 } = watch()
 
     const getCardType = (typeLine) => {
         if (typeLine.includes("Creature")) return cardTypeToManaCostMultiplier[6]
@@ -74,6 +76,7 @@ const CardCalculator = () => {
 
     const handleSearch = () => {
         setSearching(true)
+        setCardFlipped(false)
         axios.get("https://api.scryfall.com/cards/named", {params: {fuzzy: getValues("cardName").toLowerCase().replace(/  +/g, "+")}})
             // Handle the response from backend here
             .then(({data}) => {
@@ -81,6 +84,7 @@ const CardCalculator = () => {
                 const cardFacesData = data?.card_faces ? data?.card_faces : [data]
                 setCardFaces(cardFacesData.map(face => ({
                     cardName: face?.name,
+                    oracleText: face?.oracle_text,
                     convertedManaCost: face?.mana_cost?.length > 0 ? face?.cmc || data?.cmc : 0,
                     cardType: getCardType(face?.type_line),
                     legendary: face?.type_line.includes("Legendary"),
@@ -127,7 +131,7 @@ const CardCalculator = () => {
                     // addedMana: 0, // Amount of mana added in a turn
 
                     // Planeswalker
-                    loyalty: 0, // Starting loyalty
+                    loyalty: Number(face?.loyalty), // Starting loyalty
                     plusAbilities: 0, // Number of plus abilities
                     minusAbilities: 0, // Number of minus abilities
                     staticAbilities: 0, // Number of static abilities
@@ -175,11 +179,6 @@ const CardCalculator = () => {
                 console.log("rej", rej)
             })
     }
-    const { cardRarity, banned, after2020 } = watch()
-
-    // useEffect(() => {
-    //     console.log("cardRarity", cardRarity)
-    // }, [cardRarity])
 
     useEffect(() => {
         let equation = []

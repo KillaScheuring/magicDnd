@@ -5,7 +5,7 @@ import {
     ControlledTextField as TextField,
     ControlledToggle as Toggle
 } from "./ControlledInput";
-import {cardTypeToManaCostMultiplier} from "./options";
+import {cardTypeToManaCostMultiplier, evasionText, protectionText, stupidText} from "./options";
 import {Row} from "./FormStyling";
 import {Divider, Typography, useMediaQuery, useTheme} from "@mui/material";
 import {LargeScreen, SmallScreen} from "./Breakpoints";
@@ -19,10 +19,10 @@ export const Variable = ({label, multiplier, value}) => {
     return <span>{label} (<span className={"text-success fw-bold"}>{value}</span>)</span>
 }
 
-const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
+const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
-    const {control, setValue, watch, getValues} = useForm({
+    const {control, setValue, watch, getValues, setError, clearErrors} = useForm({
         defaultValues: {exp: 0, ...defaultValues}
     })
 
@@ -96,6 +96,72 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
     useEffect(() => {
         setValue("toughnessAboveVanilla", toughness > convertedManaCost ? toughness - convertedManaCost : 0)
     }, [setValue, convertedManaCost, toughness])
+
+    useEffect(() => {
+        clearErrors()
+        if (oracleText.length > 0) {
+            const estimates = {
+                abilities: 0,
+                wordyAbilities: 0,
+                evasionAbilities: 0,
+                protectionAbilities: 0,
+                stupidAbilities: 0,
+                manaAbilities: 0,
+                creaturesRemoved: 0,
+                nonManaAbilities: 0,
+                addedMana: 0,
+                plusAbilities: 0,
+                minusAbilities: 0,
+                staticAbilities: 0,
+            }
+            oracleText
+                .replaceAll(cardName, "name") // The card name counts as a single word
+                .replace(/\(.*\)/g, "name") // The card name counts as a single word
+                .toLowerCase() // remove case sensitivity
+                .split("\n") // Split on new lines
+                .forEach(ability => {
+                    estimates.abilities ++
+
+                    if (ability.split(" ").length >= 10) estimates.wordyAbilities ++
+
+                    evasionText.forEach(text => {
+                        if (ability.includes(text)) estimates.evasionAbilities ++
+                    })
+
+                    protectionText.forEach(text => {
+                        if (ability.includes(text)) estimates.protectionAbilities ++
+                    })
+
+                    stupidText.forEach(text => {
+                        if (ability.includes(text)) estimates.stupidAbilities ++
+                    })
+
+                    if (ability.replace(/add {(.)}/, "MANA").includes("MANA")) {
+                        estimates.manaAbilities ++
+                        estimates.addedMana = 1 // TODO figure out better estimate
+                    }
+                    else if (cardType.label !== "Non-Basic Land" || !ability.includes("enters the battlefield tapped")){
+                        estimates.nonManaAbilities ++
+                    }
+
+                    if (ability.includes("destroy target creature")) estimates.creaturesRemoved ++
+
+                    if (ability.includes("exile target creature")) estimates.creaturesRemoved ++
+
+                    if (cardType.label === "Planeswalker") {
+                        if (ability.replace(/\+./, "PLUS").includes("PLUS")) estimates.plusAbilities ++
+                        else if (ability.replace(/−./, "MINUS").includes("MINUS")) estimates.minusAbilities ++
+                        else estimates.staticAbilities ++
+                    }
+            })
+
+            for (let ability in estimates) {
+                if (estimates[ability] < 1) continue
+                setError(ability, {message: `Estimated ${estimates[ability]}`})
+            }
+
+        }
+    }, [oracleText, setError])
 
     useEffect(() => {
         const formConfig = getFormConfig(cardType?.label)
@@ -198,7 +264,6 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
         manaAbilities,
         searchesLibrary,
     ])
-
 
     const cardTypeForm = () => {
         const formConfig = getFormConfig(cardType?.label)
@@ -393,12 +458,12 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                         <LargeScreen>
                             <Row>
                                 <TextField name={"abilities"} type={"number"} control={control}
-                                           label={formConfig.pacify.label.largeScreen}
-                                           helperText={formConfig.pacify.helperText}
+                                           label={formConfig.abilities.label.largeScreen}
+                                           helperText={formConfig.abilities.helperText}
                                 />
                                 <TextField name={"wordyAbilities"} type={"number"} control={control}
-                                           label={formConfig.pacify.label.largeScreen}
-                                           helperText={formConfig.pacify.helperText}
+                                           label={formConfig.wordyAbilities.label.largeScreen}
+                                           helperText={formConfig.wordyAbilities.helperText}
                                 />
                             </Row>
                             <Row>
@@ -707,6 +772,7 @@ const CardFaceForm = ({cardName, showExp, onChange, ...defaultValues}) => {
                 )
         }
     }
+
     return (
         <>
             <Typography variant={smallDisplay ? "" : "h5"}>{cardName} - {cardType?.label}</Typography>

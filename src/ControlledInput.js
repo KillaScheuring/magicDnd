@@ -20,7 +20,6 @@ export const ControlledTextField = ({control, name, ...props}) => {
         rules: {required: true},
     })
 
-
     return (
         <FormControl component={"fieldset"} variant={"standard"} fullWidth>
             {
@@ -39,7 +38,6 @@ export const ControlledTextField = ({control, name, ...props}) => {
                 value={field.value} // input value
                 name={field.name} // send down the input name
                 inputRef={field.ref} // send input ref, so we can focus on input when error appear
-                error={!!error}
                 helperText={error?.message}
                 label={undefined}
             />
