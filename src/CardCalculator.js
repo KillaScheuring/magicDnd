@@ -351,9 +351,6 @@ const CardCalculator = () => {
                             <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
                         </Row>
                     </Row>
-                    <Row>
-
-                    </Row>
                 </LargeScreen>
                 {mathOpen && (
                     <Row>
