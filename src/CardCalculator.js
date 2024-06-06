@@ -404,7 +404,7 @@ const CardCalculator = () => {
             {/*SMALL DISPLAY*/}
             {cardImages.length > 0 && smallDisplay && !cardOpen && (
                 <img
-                    src={cardImages[Number(cardFlipped)]}
+                    src={(multiplePrintings ? printings[displayedPrinting] : cardImages)[Number(cardFlipped)]}
                     alt={watch().cardName}
                     style={{
                         zIndex: 10, position: "absolute", right: -20, top: -70,
