@@ -71,6 +71,42 @@ export const ControlledSelect = ({control, name, options, ...props}) => {
     )
 }
 
+export const SearchAutocomplete = ({control, name, suggestions, onInputChange, ...props}) => {
+    return (
+        <>
+            <Controller
+                render={({field}) => {
+                    const {onChange, onBlur, value} = field;
+                    return (<>
+                        <FormControl component={"fieldset"} variant={"standard"} fullWidth>
+                            <FormLabel component={"legend"}>{props?.label}</FormLabel>
+                            <Autocomplete
+                                fullWidth
+                                freeSolo
+                                options={suggestions}
+                                onInputChange={onInputChange}
+                                renderInput={params => (
+                                    <TextField
+                                        {...params}
+                                        // label={props?.label}
+                                    />
+                                )}
+                                onChange={(e, data) => onChange(data)}
+                                onBlur={onBlur}
+                                value={value}
+                                className={props?.className}
+                            />
+                        </FormControl>
+                    </>);
+                }}
+                onChange={([_, data]) => data}
+                name={name}
+                control={control}
+            />
+        </>
+    )
+}
+
 export const ControlledAutocomplete = ({control, name, options, ...props}) => {
     return (
         <>

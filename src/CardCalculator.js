@@ -1,11 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import axios from "axios";
 import {useForm} from "react-hook-form"
-import {Box, Typography, Divider, Button, Modal, useTheme, useMediaQuery, Tabs, Tab, styled} from "@mui/material";
+import {Autocomplete as MuiAutocomplete, TextField as MuiTextField, Box, Typography, Divider, Button, Modal, useTheme, useMediaQuery, Tabs, Tab, styled} from "@mui/material";
 import {
     ControlledAutocomplete as Autocomplete,
     ControlledTextField as TextField,
-    ControlledToggle as Toggle
+    ControlledToggle as Toggle,
+    SearchAutocomplete
 } from "./ControlledInput";
 import {rarityToMultiplier, cardTypeToManaCostMultiplier, rarityToLevel, bannedOrRestricted} from "./options"
 import {Row} from "./FormStyling";
@@ -95,6 +96,9 @@ const CardCalculator = () => {
     })
     const [oracleText, setOracleText] = useState("")
 
+    const [previousSearches, setPreviousSearches] = useState([])
+    const [cardNameSuggestions, setCardNameSuggestions] = useState([])
+
     const { control, setValue, watch, getValues, reset, setError, handleSubmit } = useForm({
         defaultValues: {
             cardName: "",
@@ -107,7 +111,48 @@ const CardCalculator = () => {
 
     const multiplePrintings = !(printings.firstPrinting[0] === printings.lowestRarity[0] && printings.firstPrinting[0] === printings.highestRarity[0])
 
-    const { cardRarity, banned, after2020 } = watch()
+    const { cardRarity, banned, after2020, cardName } = watch()
+
+    useEffect(() => {
+        let equation = []
+        let expCost = 0
+        cardFaceExp.forEach(({exp, equation: math=[]}, index) => {
+            expCost += exp
+            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
+                equation = [...equation, math[0]]
+            }
+            expCost += banned * 6
+            equation.push(<Variable label={"Banned/Restricted"} value={banned} multiplier={6}/>)
+            expCost += after2020 * 5
+            equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={5}/>)
+            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
+                equation = [...equation, ...math.slice(1)]
+            }
+            else {
+                equation = [...equation, ...math]
+            }
+        })
+
+        expCost *= cardRarity?.value
+        setCardMath(equation)
+        setValue("exp", expCost)
+    }, [cardRarity, banned, after2020, setValue, cardFaceExp])
+
+    useEffect(() => {
+        if (cardName) handleSearch(null)
+    }, [cardName])
+
+    const getCardNameSuggestions = (event, cardInput, reason) => {
+        if (cardInput === "") setCardNameSuggestions([...previousSearches])
+        if (cardInput.length < 3) return
+        console.log("cardInput", cardInput)
+        axios.get("https://api.scryfall.com/cards/autocomplete", {params: {q: cardInput}})
+            .then(({data: {data}}) => {
+                setCardNameSuggestions(data.slice(0, 5))
+            }, rej => {
+
+            })
+    }
 
     const getCardImageFromData = data => {
         const cardFacesData = data?.card_faces ? data?.card_faces : [data]
@@ -162,13 +207,12 @@ const CardCalculator = () => {
             })
     }
 
-    console.log("printings", printings)
-
     const handleSearch = e => {
         if (e) e.preventDefault()
         setSearching(true)
         setCardFlipped(false)
         setDisplayedPrinting("highestRarity")
+        if (!previousSearches.includes(cardName)) setPreviousSearches([cardName, ...previousSearches].slice(0, 5))
         axios.get("https://api.scryfall.com/cards/named", {params: {fuzzy: getValues("cardName").toLowerCase().replace(/  +/g, "+")}})
             // Handle the response from backend here
             .then(({data}) => {
@@ -272,38 +316,18 @@ const CardCalculator = () => {
             })
     }
 
-    useEffect(() => {
-        let equation = []
-        let expCost = 0
-        cardFaceExp.forEach(({exp, equation: math=[]}, index) => {
-            expCost += exp
-            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
-                equation = [...equation, math[0]]
-            }
-            expCost += banned * 6
-            equation.push(<Variable label={"Banned/Restricted"} value={banned} multiplier={6}/>)
-            expCost += after2020 * 5
-            equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={5}/>)
-            if (cardFaces[index].cardType.label !== "Non-Basic Land") {
-                equation = [...equation, ...math.slice(1)]
-            }
-            else {
-                equation = [...equation, ...math]
-            }
-        })
-
-        expCost *= cardRarity?.value
-        setCardMath(equation)
-        setValue("exp", expCost)
-    }, [cardRarity, banned, after2020, setValue, cardFaceExp])
-
     return (
         <div className={`row ${smallDisplay ? "m-1" : "m-2"}`}>
             <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
                 <Typography variant={"h4"}>Card Calculator</Typography>
                 <SmallScreen>
-                    <form className={"d-flex flex-row mb-3 gap-3 w-50"} autoComplete={"off"} onSubmit={handleSearch}>
-                        <TextField name={"cardName"} label={"Card Name"} control={control}/>
+                    <form className={"d-flex flex-row mb-3 gap-3 w-100"} autoComplete={"off"} onSubmit={handleSearch}>
+                        <SearchAutocomplete
+                            control={control} name={"cardName"}
+                            label={"Card Name"}
+                            onInputChange={getCardNameSuggestions}
+                            suggestions={cardNameSuggestions}
+                        />
                         <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
                     </form>
                     <Row>
@@ -314,13 +338,21 @@ const CardCalculator = () => {
                 <LargeScreen>
                     <Row>
                         <form className={"d-flex flex-row mb-3 gap-3 w-50"} autoComplete={"off"} onSubmit={handleSearch}>
-                            <TextField name={"cardName"} label={"Card Name"} control={control}/>
+                            <SearchAutocomplete
+                                control={control} name={"cardName"}
+                                label={"Card Name"}
+                                onInputChange={getCardNameSuggestions}
+                                suggestions={cardNameSuggestions}
+                            />
                             <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
                         </form>
                         <Row className={"w-50"}>
                             <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
                             <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
                         </Row>
+                    </Row>
+                    <Row>
+
                     </Row>
                 </LargeScreen>
                 {mathOpen && (
