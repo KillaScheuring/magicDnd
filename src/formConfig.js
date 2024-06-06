@@ -69,7 +69,7 @@ export const getFormConfig = (cardType) => {
                     "multiplier": 7,
                     "label": {
                         "equation": "Removal",
-                        "smallScreen": "Creatures destroyed or removed",
+                        "smallScreen": "Abilities that destroyed or removed",
                         "largeScreen": "Abilities that destroy or remove creatures",
                     },
                     "helperText": "+7 points if the ability destroys or exiles another creature."

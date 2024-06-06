@@ -39,6 +39,7 @@ export const ControlledTextField = ({control, name, ...props}) => {
                 name={field.name} // send down the input name
                 inputRef={field.ref} // send input ref, so we can focus on input when error appear
                 helperText={error?.message}
+                error={error?.type === "error"}
                 label={undefined}
             />
         </FormControl>

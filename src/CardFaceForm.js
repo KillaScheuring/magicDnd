@@ -89,6 +89,11 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
         searchesLibrary,
     } = watch()
 
+    const abilityFields = [
+        wordyAbilities, evasionAbilities, protectionAbilities, stupidAbilities,
+        creaturesRemoved, monarchOrInit, searchesLibrary, manaAbilities
+    ]
+
     useEffect(() => {
         setValue("powerAboveVanilla", power > convertedManaCost ? power - convertedManaCost : 0)
     }, [setValue, convertedManaCost, power])
@@ -98,69 +103,14 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
     }, [setValue, convertedManaCost, toughness])
 
     useEffect(() => {
-        clearErrors()
-        if (oracleText.length > 0) {
-            const estimates = {
-                abilities: 0,
-                wordyAbilities: 0,
-                evasionAbilities: 0,
-                protectionAbilities: 0,
-                stupidAbilities: 0,
-                manaAbilities: 0,
-                creaturesRemoved: 0,
-                nonManaAbilities: 0,
-                addedMana: 0,
-                plusAbilities: 0,
-                minusAbilities: 0,
-                staticAbilities: 0,
-            }
-            oracleText
-                .replaceAll(cardName, "name") // The card name counts as a single word
-                .replace(/\(.*\)/g, "name") // The card name counts as a single word
-                .toLowerCase() // remove case sensitivity
-                .split("\n") // Split on new lines
-                .forEach(ability => {
-                    estimates.abilities ++
+        setSuggestions()
+        abilityFields.forEach(abilityCount => {
+            if (abilityCount > abilities) setError("abilities", {message: "Please recount abilities", type: "error"})
+        })
+    }, [abilityFields, abilities])
 
-                    if (ability.split(" ").length >= 10) estimates.wordyAbilities ++
-
-                    evasionText.forEach(text => {
-                        if (ability.includes(text)) estimates.evasionAbilities ++
-                    })
-
-                    protectionText.forEach(text => {
-                        if (ability.includes(text)) estimates.protectionAbilities ++
-                    })
-
-                    stupidText.forEach(text => {
-                        if (ability.includes(text)) estimates.stupidAbilities ++
-                    })
-
-                    if (ability.replace(/add {(.)}/, "MANA").includes("MANA")) {
-                        estimates.manaAbilities ++
-                        estimates.addedMana = 1 // TODO figure out better estimate
-                    }
-                    else if (cardType.label !== "Non-Basic Land" || !ability.includes("enters the battlefield tapped")){
-                        estimates.nonManaAbilities ++
-                    }
-
-                    if (ability.includes("destroy target creature")) estimates.creaturesRemoved ++
-
-                    if (ability.includes("exile target creature")) estimates.creaturesRemoved ++
-
-                    if (cardType.label === "Planeswalker") {
-                        if (ability.replace(/\+./, "PLUS").includes("PLUS")) estimates.plusAbilities ++
-                        else if (ability.replace(/−./, "MINUS").includes("MINUS")) estimates.minusAbilities ++
-                        else estimates.staticAbilities ++
-                    }
-            })
-
-            for (let ability in estimates) {
-                if (estimates[ability] < 1) continue
-                setError(ability, {message: `Estimated ${estimates[ability]}`})
-            }
-
-        }
+    useEffect(() => {
+        setSuggestions()
     }, [oracleText, setError])
 
     useEffect(() => {
@@ -264,6 +214,72 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
         manaAbilities,
         searchesLibrary,
     ])
+
+    const setSuggestions = () => {
+        clearErrors()
+        if (oracleText.length > 0) {
+            const estimates = {
+                abilities: 0,
+                wordyAbilities: 0,
+                evasionAbilities: 0,
+                protectionAbilities: 0,
+                stupidAbilities: 0,
+                manaAbilities: 0,
+                creaturesRemoved: 0,
+                nonManaAbilities: 0,
+                addedMana: 0,
+                plusAbilities: 0,
+                minusAbilities: 0,
+                staticAbilities: 0,
+            }
+            oracleText
+                .replaceAll(cardName, "name") // The card name counts as a single word
+                .replace(/\(.*\)/g, "name") // The card name counts as a single word
+                .toLowerCase() // remove case sensitivity
+                .split("\n") // Split on new lines
+                .forEach(ability => {
+                    estimates.abilities ++
+
+                    if (ability.split(" ").length >= 10) estimates.wordyAbilities ++
+
+                    evasionText.forEach(text => {
+                        if (ability.includes(text)) estimates.evasionAbilities ++
+                    })
+
+                    protectionText.forEach(text => {
+                        if (ability.includes(text)) estimates.protectionAbilities ++
+                    })
+
+                    stupidText.forEach(text => {
+                        if (ability.includes(text)) estimates.stupidAbilities ++
+                    })
+
+                    if (ability.replace(/add {(.)}/, "MANA").includes("MANA")) {
+                        estimates.manaAbilities ++
+                        estimates.addedMana = 1 // TODO figure out better estimate
+                    }
+                    else if (cardType.label !== "Non-Basic Land" || !ability.includes("enters the battlefield tapped")){
+                        estimates.nonManaAbilities ++
+                    }
+
+                    if (ability.includes("destroy target creature")) estimates.creaturesRemoved ++
+
+                    if (ability.includes("exile target creature")) estimates.creaturesRemoved ++
+
+                    if (cardType.label === "Planeswalker") {
+                        if (ability.replace(/\+./, "PLUS").includes("PLUS")) estimates.plusAbilities ++
+                        else if (ability.replace(/−./, "MINUS").includes("MINUS")) estimates.minusAbilities ++
+                        else estimates.staticAbilities ++
+                    }
+                })
+
+            for (let ability in estimates) {
+                if (estimates[ability] < 1) continue
+                setError(ability, {message: `Estimated ${estimates[ability]}`, type: "suggestion"})
+            }
+
+        }
+    }
 
     const cardTypeForm = () => {
         const formConfig = getFormConfig(cardType?.label)
