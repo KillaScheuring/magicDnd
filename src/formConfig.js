@@ -127,7 +127,7 @@ export const getFormConfig = (cardType) => {
                     "label": {
                         "equation": "Mana Added",
                         "smallScreen": "Mana added in a turn",
-                        "largeScreen": "Amount of mana added in a turn",
+                        "largeScreen": "Amount of mana added",
                     },
                     "helperText": "+4 points if that ability is 10 words or more."
                 }
