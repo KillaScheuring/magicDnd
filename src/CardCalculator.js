@@ -302,7 +302,7 @@ const CardCalculator = () => {
             <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
                 <Typography variant={"h4"}>Card Calculator</Typography>
                 <SmallScreen>
-                    <form onSubmit={handleSearch} className={"d-flex flex-row mb-3 gap-3"}>
+                    <form className={"d-flex flex-row mb-3 gap-3 w-50"} autoComplete={"off"} onSubmit={handleSearch}>
                         <TextField name={"cardName"} label={"Card Name"} control={control}/>
                         <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
                     </form>
@@ -313,7 +313,7 @@ const CardCalculator = () => {
                 </SmallScreen>
                 <LargeScreen>
                     <Row>
-                        <form onSubmit={handleSearch} className={"d-flex flex-row mb-3 gap-3 w-50"}>
+                        <form className={"d-flex flex-row mb-3 gap-3 w-50"} autoComplete={"off"} onSubmit={handleSearch}>
                             <TextField name={"cardName"} label={"Card Name"} control={control}/>
                             <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
                         </form>
