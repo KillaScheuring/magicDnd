@@ -222,12 +222,10 @@ const CardCalculator = () => {
 
     const { cardRarity, banned, after2020, cardName } = watch()
 
-    console.log("cardFaces", cardFaces)
-
     useEffect(() => {
         let equation = []
         let expCost = 0
-        cardFaceValues.forEach(({exp, equation: math=[]}, index) => {
+        cardFaces.forEach(({exp, equation: math=[]}, index) => {
             expCost += exp
             if (cardFaces[index].cardType.label !== "Non-Basic Land") {
                 equation = [...equation, math[0]]
@@ -247,7 +245,7 @@ const CardCalculator = () => {
         expCost *= cardRarity?.value
         setCardMath(equation)
         setValue("exp", expCost)
-    }, [cardRarity, banned, after2020, setValue, cardFaceValues])
+    }, [cardRarity, banned, after2020, setValue, cardFaces])
 
     useEffect(() => {
         if (cardName) handleSearch(null)
@@ -351,6 +349,7 @@ const CardCalculator = () => {
                 }
                 else {
                     setCardFaces(cardFacesData.map(face => ({
+                        exp: 0, math: [],
                         cardName: face?.name,
                         oracleText: face?.oracle_text,
                         convertedManaCost: face?.mana_cost?.length > 0 ? face?.cmc || data?.cmc : 0,
@@ -417,17 +416,16 @@ const CardCalculator = () => {
                         // monarchOrInit: false, // Adds Monarch or Initiative?
                         searchesLibrary: false, // Triggers a search of a library?
                     })))
-                    setCardFaceValues(cardFacesData.map(() => ({exp: 0, math: []})))
                     setValue("banned", bannedOrRestricted.includes(data?.name))
                 }
-                setSearching(false)
+                setTimeout(() => setSearching(false), 500)
             }, rej => {
                 console.log("rej", rej)
             })
     }
 
     const handleAddCard = () => setCardList(prevState => {
-        prevState = [...prevState, {...watch(), faces: cardFaceValues}]
+        prevState = [...prevState, {...watch(), faces: cardFaces}]
         setStorage("cardList", [...prevState])
         return prevState
     })
@@ -450,19 +448,19 @@ const CardCalculator = () => {
     const handleOpenCard = (cardIndex) => {
         setFromCart(true)
         reset({...cardList[cardIndex]}, {keepDefaultValues: true})
-        setCardFaceValues([...cardList[cardIndex].faces])
         setCardFaces([...cardList[cardIndex].faces])
+        handleCloseCart()
     }
 
     const handleOpenCart = event => setAnchorEl(event.currentTarget)
 
-    const handleClose = () => setAnchorEl(null)
+    const handleCloseCart = () => setAnchorEl(null)
 
     return (
         <div className={`row ${smallDisplay ? "m-1" : "m-2"}`}>
             <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
                 <CardsMenu anchorEl={anchorEl} cardList={cardList}
-                           onClose={handleClose} onClear={handleRemoveCard}
+                           onClose={handleCloseCart} onClear={handleRemoveCard}
                            onClearAll={handleRemoveAllCards}
                            onCardClick={handleOpenCard}
                 />
@@ -544,9 +542,9 @@ const CardCalculator = () => {
                 )}
                 {!searching && cardFaces.map((face, faceIndex) => (
                     <CardFaceForm {...face}
-                                  showExp={cardFaceValues.length > 1}
-                                  onChange={cardFaceValue => setCardFaceValues(prevState => {
-                                      prevState[faceIndex] = {...cardFaceValue}
+                                  showExp={cardFaces.length > 1}
+                                  onChange={cardFace => setCardFaces(prevState => {
+                                      prevState[faceIndex] = {...cardFace}
                                       return [...prevState]
                                   })}
                     />
