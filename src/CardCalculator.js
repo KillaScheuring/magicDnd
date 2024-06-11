@@ -8,14 +8,8 @@ import {
     Modal,
     useTheme,
     useMediaQuery,
-    Tabs,
-    Tab,
-    styled,
-    IconButton,
-    Badge, Menu, MenuItem,
-    TableContainer, Table, TableHead, TableBody, TableRow, TableCell
+    Badge,
 } from "@mui/material";
-import {Clear, Visibility} from "@mui/icons-material"
 import {
     ControlledAutocomplete as Autocomplete,
     ControlledTextField as TextField,
@@ -27,156 +21,9 @@ import {Row} from "./FormStyling";
 import CardFaceForm, {Variable} from "./CardFaceForm";
 import {SmallScreen, LargeScreen} from "./Breakpoints";
 import {getStorage, setStorage, sortColors} from "./utils";
-
-const OracleText = ({oracleText}) => {
-    return (
-        <>
-            <Typography variant={"h4"}>Oracle Text</Typography>
-            <Typography>{oracleText.split("\n").map(line => (<>{line}<br/><br/></>))}</Typography>
-        </>
-    )
-}
-
-const StyledTabs = styled((props) => (
-    <Tabs
-        {...props}
-        TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" /> }}
-    />
-))({
-    '& .MuiTabs-indicator': {
-        display: 'none',
-        justifyContent: 'center',
-        backgroundColor: '#ffffff',
-    },
-    '& .MuiTabs-indicatorSpan': {
-        display: 'none',
-        maxWidth: 40,
-        width: '100%',
-        backgroundColor: '#ffffff',
-    },
-    '& .MuiTabs-flexContainer': {
-    },
-});
-
-const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
-    ({ theme }) => ({
-        textTransform: 'none',
-        // color: 'rgba(255, 255, 255, 0.7)',
-        '&.Mui-selected': {
-            color: '#fff',
-            backgroundColor: theme.palette.primary.dark,
-            borderRadius: "0% 20% 0% 20%"
-        },
-        // '&.Mui-focusVisible': {
-        //     backgroundColor: 'rgba(100, 95, 228, 0.32)',
-        // },
-    }),
-);
-
-const CardsMenu = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardClick}) => {
-    const theme = useTheme()
-    const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
-    const open = Boolean(anchorEl)
-    return (
-        <Menu
-            anchorEl={anchorEl}
-            id="account-menu"
-            open={open}
-            onClose={onClose}
-            PaperProps={{
-                elevation: 0,
-                sx: {
-                    overflow: 'visible',
-                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                    mt: 1.5,
-                    '& .MuiAvatar-root': {
-                        width: 32,
-                        height: 32,
-                        ml: -0.5,
-                        mr: 1,
-                    },
-                    '&::before': {
-                        content: '""',
-                        display: 'block',
-                        position: 'absolute',
-                        top: 0,
-                        right: 14,
-                        width: 10,
-                        height: 10,
-                        bgcolor: 'background.paper',
-                        transform: 'translateY(-50%) rotate(45deg)',
-                        zIndex: 0,
-                    },
-                },
-            }}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        >
-            <TableContainer style={{width: smallDisplay ? "100vw" : "45vw"}}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Card</TableCell>
-                            <LargeScreen>
-                                <TableCell>Color</TableCell>
-                                <TableCell>CMC</TableCell>
-                            </LargeScreen>
-                            <TableCell>EXP</TableCell>
-                            <TableCell/>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {cardList.map((card, index) => (
-                            <TableRow onClick={() => onCardClick(index)}>
-                                <TableCell>{card?.cardName}</TableCell>
-                                <LargeScreen>
-                                    <TableCell>{card?.color}</TableCell>
-                                    <TableCell>{card?.faces?.reduce((total, face) => total + face?.convertedManaCost, 0)}</TableCell>
-                                </LargeScreen>
-                                <TableCell>{card?.exp}</TableCell>
-                                <TableCell>
-                                    <IconButton onClick={() => onClear(index)}>
-                                        <Clear/>
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {cardList.length > 0 && (
-                            <TableRow>
-                                <LargeScreen>
-                                    <TableCell colSpan={2}/>
-                                </LargeScreen>
-                                <TableCell>Total</TableCell>
-                                <TableCell>{cardList.reduce((total, card) => total + card?.exp, 0)}</TableCell>
-                                <TableCell>
-                                    <IconButton onClick={onClearAll}>
-                                        <Clear/>
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Menu>
-    )
-}
-
-const PrintingsTabs = ({visible, value, onChange}) => {
-    return (
-        <div className={`${visible ? "" : "invisible"}`}>
-            <StyledTabs
-                orientation={"vertical"}
-                value={value}
-                onChange={(e, value) => onChange(value)}
-            >
-                <StyledTab label={"Lowest Rarity"} value={"lowestRarity"}/>
-                <StyledTab label={"Highest Rarity"} value={"highestRarity"}/>
-                <StyledTab label={"First Printing"} value={"firstPrinting"}/>
-            </StyledTabs>
-        </div>
-    )
-}
+import CardBuyList from "./CardBuyList";
+import PrintingsTabs from "./PrintingsTabs";
+import OracleText from "./OracleText";
 
 const CardCalculator = () => {
     const theme = useTheme()
@@ -184,7 +31,6 @@ const CardCalculator = () => {
 
     const [anchorEl, setAnchorEl] = useState(null);
 
-    const [cardFaceValues, setCardFaceValues] = useState([])
     const [cardMath, setCardMath] = useState([])
 
     const [searching, setSearching] = useState(true)
@@ -202,13 +48,13 @@ const CardCalculator = () => {
     })
     const [oracleText, setOracleText] = useState("")
 
-    const [cardList, setCardList] = useState([])
-
     const [fromCart, setFromCart] = useState(false)
+    const [cardBuyList, setCardBuyList] = useState([])
+
     const [previousSearches, setPreviousSearches] = useState([])
     const [cardNameSuggestions, setCardNameSuggestions] = useState([])
 
-    const { control, setValue, watch, getValues, setError, reset } = useForm({
+    const { control, setValue, watch, getValues, reset } = useForm({
         defaultValues: {
             cardName: "",
             exp: 0,
@@ -253,13 +99,12 @@ const CardCalculator = () => {
 
     useEffect(() => {
         const storedCardList = getStorage("cardList")
-        if (storedCardList?.length > 0) setCardList(storedCardList)
-    }, [setCardList])
+        if (storedCardList?.length > 0) setCardBuyList(storedCardList)
+    }, [setCardBuyList])
 
     const getCardNameSuggestions = (event, cardInput, reason) => {
         if (cardInput === "") setCardNameSuggestions([...previousSearches])
         if (cardInput.length < 3) return
-        console.log("cardInput", cardInput)
         axios.get("https://api.scryfall.com/cards/autocomplete", {params: {q: cardInput}})
             .then(({data: {data}}) => {
                 setCardNameSuggestions(data.slice(0, 5))
@@ -424,13 +269,13 @@ const CardCalculator = () => {
             })
     }
 
-    const handleAddCard = () => setCardList(prevState => {
+    const handleAddCard = () => setCardBuyList(prevState => {
         prevState = [...prevState, {...watch(), faces: cardFaces}]
         setStorage("cardList", [...prevState])
         return prevState
     })
 
-    const handleRemoveCard = (cardIndex) => setCardList(prevState => {
+    const handleRemoveCard = (cardIndex) => setCardBuyList(prevState => {
         const newState = []
         prevState.forEach((card, index) => {
             if (index === cardIndex) return
@@ -440,15 +285,15 @@ const CardCalculator = () => {
         return newState
     })
 
-    const handleRemoveAllCards = () => setCardList(() => {
+    const handleRemoveAllCards = () => setCardBuyList(() => {
         setStorage("cardList", [])
         return []
     })
 
     const handleOpenCard = (cardIndex) => {
         setFromCart(true)
-        reset({...cardList[cardIndex]}, {keepDefaultValues: true})
-        setCardFaces([...cardList[cardIndex].faces])
+        reset({...cardBuyList[cardIndex]}, {keepDefaultValues: true})
+        setCardFaces([...cardBuyList[cardIndex].faces])
         handleCloseCart()
     }
 
@@ -459,7 +304,7 @@ const CardCalculator = () => {
     return (
         <div className={`row ${smallDisplay ? "m-1" : "m-2"}`}>
             <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
-                <CardsMenu anchorEl={anchorEl} cardList={cardList}
+                <CardBuyList anchorEl={anchorEl} cardList={cardBuyList}
                            onClose={handleCloseCart} onClear={handleRemoveCard}
                            onClearAll={handleRemoveAllCards}
                            onCardClick={handleOpenCard}
@@ -467,9 +312,11 @@ const CardCalculator = () => {
                 <Row className={"justify-content-between"}>
                     <Typography variant={smallDisplay ? "h5" : "h4"}>Card Calculator</Typography>
                     <div className={"mt-2 d-flex flex-row gap-2"}>
-                        <Button variant={"outlined"} onClick={handleAddCard}>{smallDisplay ? "Add" : "Add to Buys"}</Button>
-                        <Badge badgeContent={cardList.length} color={"primary"}>
-                            <Button variant={"outlined"} onClick={cardList.length > 0 ? handleOpenCart : undefined}>Buys</Button>
+                        {cardName && (
+                            <Button variant={"outlined"} onClick={handleAddCard}>{smallDisplay ? "Add" : "Add to Buys"}</Button>
+                        )}
+                        <Badge badgeContent={cardBuyList.length} color={"primary"}>
+                            <Button variant={"outlined"} onClick={cardBuyList.length > 0 ? handleOpenCart : undefined}>Buys</Button>
                         </Badge>
                     </div>
                 </Row>
@@ -587,7 +434,7 @@ const CardCalculator = () => {
 
                     </Box>
                     <Box className={"w-100"}>
-                        <Typography>{oracleText.split("\n").map(line => (<>{line}<br/><br/></>))}</Typography>
+                        <OracleText oracleText={oracleText}/>
                     </Box>
                 </Box>
             </Modal>
@@ -605,7 +452,7 @@ const CardCalculator = () => {
                                     style={{maxWidth: "100%"}}
                                 />
                                 {cardImages.length > 1 ? <Button onClick={() => setCardFlipped(prevState => !prevState)}>Transform</Button> : null}
-                                <OracleText oracleText={oracleText}/>
+
                             </div>
                             <PrintingsTabs visible={multiplePrintings}
                                            value={displayedPrinting}
