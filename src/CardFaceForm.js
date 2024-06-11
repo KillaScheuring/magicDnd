@@ -19,7 +19,7 @@ export const Variable = ({label, multiplier, value}) => {
     return <span>{label} (<span className={"text-success fw-bold"}>{value}</span>)</span>
 }
 
-const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues}) => {
+const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
     const {control, setValue, watch, getValues, setError, clearErrors} = useForm({
@@ -27,8 +27,8 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
     })
 
     const {
-        cardType, convertedManaCost, xOrStar,
-        playersCant, legendary,
+        cardName, cardType, oracleText, convertedManaCost,
+        xOrStar, playersCant, legendary,
 
         // Instant/Sorcery
         damage,
@@ -116,6 +116,7 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
     useEffect(() => {
         const formConfig = getFormConfig(cardType?.label)
         let equation = []
+        let equationString = []
 
         let expCost = convertedManaCost * cardType?.value
         if (cardType?.label !== "Non-Basic Land"){
@@ -124,6 +125,7 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
                 CMC [(<span className={"text-success fw-bold"}>{convertedManaCost}</span>) * {cardType?.label} (<span className={"text-success fw-bold"}>{cardType?.value}</span>)]
             </span>
             )
+            equationString.push(`CMC [(${convertedManaCost}) * ${cardType?.label} (${cardType?.value})]`)
         }
 
         // Anything with X or * in the casting cost or power/toughness incurs an additional 4-point cost.
@@ -168,7 +170,7 @@ const CardFaceForm = ({cardName, showExp, onChange, oracleText, ...defaultValues
         }
 
         setValue("exp", expCost)
-        onChange(expCost, equation)
+        onChange({...watch(), expCost, equation})
     }, [
         setValue, cardType?.label, cardType?.value, convertedManaCost, xOrStar, playersCant, legendary, getValues,
         damage,

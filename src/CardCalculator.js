@@ -1,7 +1,21 @@
 import React, {useEffect, useState} from 'react';
 import axios from "axios";
 import {useForm} from "react-hook-form"
-import {Autocomplete as MuiAutocomplete, TextField as MuiTextField, Box, Typography, Divider, Button, Modal, useTheme, useMediaQuery, Tabs, Tab, styled} from "@mui/material";
+import {
+    Box,
+    Typography,
+    Button,
+    Modal,
+    useTheme,
+    useMediaQuery,
+    Tabs,
+    Tab,
+    styled,
+    IconButton,
+    Badge, Menu, MenuItem,
+    TableContainer, Table, TableHead, TableBody, TableRow, TableCell
+} from "@mui/material";
+import {Clear, Visibility} from "@mui/icons-material"
 import {
     ControlledAutocomplete as Autocomplete,
     ControlledTextField as TextField,
@@ -12,6 +26,7 @@ import {rarityToMultiplier, cardTypeToManaCostMultiplier, rarityToLevel, bannedO
 import {Row} from "./FormStyling";
 import CardFaceForm, {Variable} from "./CardFaceForm";
 import {SmallScreen, LargeScreen} from "./Breakpoints";
+import {getStorage, setStorage, sortColors} from "./utils";
 
 const OracleText = ({oracleText}) => {
     return (
@@ -58,6 +73,95 @@ const StyledTab = styled((props) => <Tab disableRipple {...props} />)(
     }),
 );
 
+const CardsMenu = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardClick}) => {
+    const theme = useTheme()
+    const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
+    const open = Boolean(anchorEl)
+    return (
+        <Menu
+            anchorEl={anchorEl}
+            id="account-menu"
+            open={open}
+            onClose={onClose}
+            PaperProps={{
+                elevation: 0,
+                sx: {
+                    overflow: 'visible',
+                    filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                    mt: 1.5,
+                    '& .MuiAvatar-root': {
+                        width: 32,
+                        height: 32,
+                        ml: -0.5,
+                        mr: 1,
+                    },
+                    '&::before': {
+                        content: '""',
+                        display: 'block',
+                        position: 'absolute',
+                        top: 0,
+                        right: 14,
+                        width: 10,
+                        height: 10,
+                        bgcolor: 'background.paper',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        zIndex: 0,
+                    },
+                },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+            <TableContainer style={{width: smallDisplay ? "100vw" : "45vw"}}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Card</TableCell>
+                            <LargeScreen>
+                                <TableCell>Color</TableCell>
+                                <TableCell>CMC</TableCell>
+                            </LargeScreen>
+                            <TableCell>EXP</TableCell>
+                            <TableCell/>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {cardList.map((card, index) => (
+                            <TableRow onClick={() => onCardClick(index)}>
+                                <TableCell>{card?.cardName}</TableCell>
+                                <LargeScreen>
+                                    <TableCell>{card?.color}</TableCell>
+                                    <TableCell>{card?.faces?.reduce((total, face) => total + face?.convertedManaCost, 0)}</TableCell>
+                                </LargeScreen>
+                                <TableCell>{card?.exp}</TableCell>
+                                <TableCell>
+                                    <IconButton onClick={() => onClear(index)}>
+                                        <Clear/>
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {cardList.length > 0 && (
+                            <TableRow>
+                                <LargeScreen>
+                                    <TableCell colSpan={2}/>
+                                </LargeScreen>
+                                <TableCell>Total</TableCell>
+                                <TableCell>{cardList.reduce((total, card) => total + card?.exp, 0)}</TableCell>
+                                <TableCell>
+                                    <IconButton onClick={onClearAll}>
+                                        <Clear/>
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Menu>
+    )
+}
+
 const PrintingsTabs = ({visible, value, onChange}) => {
     return (
         <div className={`${visible ? "" : "invisible"}`}>
@@ -78,7 +182,9 @@ const CardCalculator = () => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
 
-    const [cardFaceExp, setCardFaceExp] = useState([])
+    const [anchorEl, setAnchorEl] = useState(null);
+
+    const [cardFaceValues, setCardFaceValues] = useState([])
     const [cardMath, setCardMath] = useState([])
 
     const [searching, setSearching] = useState(true)
@@ -96,10 +202,13 @@ const CardCalculator = () => {
     })
     const [oracleText, setOracleText] = useState("")
 
+    const [cardList, setCardList] = useState([])
+
+    const [fromCart, setFromCart] = useState(false)
     const [previousSearches, setPreviousSearches] = useState([])
     const [cardNameSuggestions, setCardNameSuggestions] = useState([])
 
-    const { control, setValue, watch, getValues, reset, setError, handleSubmit } = useForm({
+    const { control, setValue, watch, getValues, setError, reset } = useForm({
         defaultValues: {
             cardName: "",
             exp: 0,
@@ -113,10 +222,12 @@ const CardCalculator = () => {
 
     const { cardRarity, banned, after2020, cardName } = watch()
 
+    console.log("cardFaces", cardFaces)
+
     useEffect(() => {
         let equation = []
         let expCost = 0
-        cardFaceExp.forEach(({exp, equation: math=[]}, index) => {
+        cardFaceValues.forEach(({exp, equation: math=[]}, index) => {
             expCost += exp
             if (cardFaces[index].cardType.label !== "Non-Basic Land") {
                 equation = [...equation, math[0]]
@@ -136,11 +247,16 @@ const CardCalculator = () => {
         expCost *= cardRarity?.value
         setCardMath(equation)
         setValue("exp", expCost)
-    }, [cardRarity, banned, after2020, setValue, cardFaceExp])
+    }, [cardRarity, banned, after2020, setValue, cardFaceValues])
 
     useEffect(() => {
         if (cardName) handleSearch(null)
     }, [cardName])
+
+    useEffect(() => {
+        const storedCardList = getStorage("cardList")
+        if (storedCardList?.length > 0) setCardList(storedCardList)
+    }, [setCardList])
 
     const getCardNameSuggestions = (event, cardInput, reason) => {
         if (cardInput === "") setCardNameSuggestions([...previousSearches])
@@ -199,9 +315,10 @@ const CardCalculator = () => {
                     highestRarity: getCardImageFromData(data?.data[highestRarity[1]]),
                     firstPrinting: getCardImageFromData(data?.data[firstPrinting[1]])
                 })
-
-                setValue("cardRarity", rarityToMultiplier[highestRarity[0]])
-                setValue("after2020", firstPrinting[0] >= 2020)
+                if (!fromCart){
+                    setValue("cardRarity", rarityToMultiplier[highestRarity[0]])
+                    setValue("after2020", firstPrinting[0] >= 2020)
+                }
             }, rej => {
                 console.log("rej", rej)
             })
@@ -218,108 +335,146 @@ const CardCalculator = () => {
             .then(({data}) => {
                 const transformSeparator = "\n----------\n"
                 const cardFacesData = data?.card_faces ? data?.card_faces : [data]
-                setCardFaces(cardFacesData.map(face => ({
-                    cardName: face?.name,
-                    oracleText: face?.oracle_text,
-                    convertedManaCost: face?.mana_cost?.length > 0 ? face?.cmc || data?.cmc : 0,
-                    cardType: getCardType(face?.type_line),
-                    legendary: face?.type_line.includes("Legendary"),
-                    xOrStar: face?.power === "*" || face?.toughness === "*" || face?.mana_cost.includes("{X}"),
-                    playersCant: false,
-
-                    // Instant/Sorcery
-                    damage: 0, // Damage/life lost to opponent
-                    life: 0, // Life gained
-                    cardsDrawn: 0, // Cards drawn
-                    cardsLookedAt: 0, // Cards looked at and not drawn
-                    creaturesRemoved: 0, // Creatures destroyed or removed
-                    extraTurns: 0, // Extra turns added
-                    tutorsTop: false, // Tutors to the top of library?
-                    tutorsBoard: false, // Tutors to the hand or board?
-                    countersSpell: false, // Counters a spell?
-                    landRemoved: false, // Destroys or removes a land?
-                    cardsDiscarded: 0, // Cards opponent discards
-                    storm: false, // Has storm?
-                    cascade: false, // Has cascade?
-                    monarchOrInit: false, // Adds Monarch or Initiative?
-                    boardWipe: false, // Can wipe the board?
-                    wordyAbilities: 0, // Wordy abilities
-
-                    // Non-Creature Artifacts
-                    nonManaAbilities: 0, // Non-Mana Abilities
-                    // wordyAbilities: 0, // Wordy abilities
-                    addedMana: 0, // Amount of mana added
-
-                    // Non-Creature Enchantment/Battle
-                    abilities: 0, // Number of abilities
-                    // wordyAbilities: 0, // Wordy abilities
-                    beginsInPlay: false, // Can begin in play?
-                    controlPermanent: false, // Can gain control of a permanent?
-                    pacify: false, // Can pacify, arrest, or exile?
-
-                    // Non-Basic Land
-                    colorsProducedOrFetched: 0, // Number of colors produced or lands fetched
-                    landType: false, // Has a basic land type
-                    subType: false, // Has a land subtype?
-                    manLand: false, // Can make or become a creature?
-                    // nonManaAbilities: 0, // Non-Mana Abilities ^(Not including coming into play tapped or untapped)
-                    untapped: false, // Comes in untapped?
-                    // addedMana: 0, // Amount of mana added in a turn
-
-                    // Planeswalker
-                    loyalty: Number(face?.loyalty), // Starting loyalty
-                    plusAbilities: 0, // Number of plus abilities
-                    minusAbilities: 0, // Number of minus abilities
-                    staticAbilities: 0, // Number of static abilities
-
-                    // Creatures
-                    power: face?.power && face?.power !== "*" ? Number(face?.power) : 0,
-                    toughness: face?.toughness && face?.toughness !== "*" ? face?.toughness : 0,
-                    // abilities: 0, // Number of abilities
-                    // wordyAbilities: 0, // Wordy abilities
-                    evasionAbilities: 0, // Number of evasion abilities ^(Flying, Shadow, Menace, Trample, etc.)
-                    protectionAbilities: 0, // Number of protection abilities ^(Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc.)
-                    stupidAbilities: 0, // Number of inherently stupid abilities ^(Specifically: Annihilator, Infect, Cascade, & Affinity)
-                    // creaturesRemoved: 0, // Removes another creature?
-                    manaAbilities: 0, // Has a mana ability?
-                    // monarchOrInit: false, // Adds Monarch or Initiative?
-                    searchesLibrary: false, // Triggers a search of a library?
-                })))
-                setCardFaceExp(cardFacesData.map(() => ({exp: 0, math: []})))
 
                 const dataOracleText = cardFacesData.map(face => face?.oracle_text).join(transformSeparator)
                 setOracleText(dataOracleText)
 
-                let estimatedAbilities = 0
-                let estimatedWordyAbilities = 0
-
-                dataOracleText.replace(transformSeparator, "\n").split("\n").forEach(ability => {
-                    estimatedAbilities ++
-                    estimatedWordyAbilities += ability.replace(/ \(.*\)/g, "").replace(data?.name, "Name").split(" ").length >= 10 ? 1 : 0
-                })
-
-                if (estimatedAbilities > 0) {
-                    setError("abilities", {message: `Estimate ${estimatedAbilities}`})
-                }
-
-                if (estimatedWordyAbilities > 0) {
-                    setError("wordyAbilities", {message: `Estimate ${estimatedWordyAbilities}`})
-                }
-
                 setValue("cardName", data?.name)
+                let colorIdentity = (data?.color_identity || [])
+                colorIdentity.sort(sortColors)
+                setValue("color", colorIdentity.join(""))
                 updateRarityAndPrinting(data?.prints_search_uri)
                 setCardImages(getCardImageFromData(data))
-                setValue("banned", bannedOrRestricted.includes(data?.name))
+
+                if (fromCart) {
+                    setFromCart(false)
+                }
+                else {
+                    setCardFaces(cardFacesData.map(face => ({
+                        cardName: face?.name,
+                        oracleText: face?.oracle_text,
+                        convertedManaCost: face?.mana_cost?.length > 0 ? face?.cmc || data?.cmc : 0,
+                        cardType: getCardType(face?.type_line),
+                        legendary: face?.type_line.includes("Legendary"),
+                        xOrStar: face?.power === "*" || face?.toughness === "*" || face?.mana_cost.includes("{X}"),
+                        playersCant: false,
+
+                        // Instant/Sorcery
+                        damage: 0, // Damage/life lost to opponent
+                        life: 0, // Life gained
+                        cardsDrawn: 0, // Cards drawn
+                        cardsLookedAt: 0, // Cards looked at and not drawn
+                        creaturesRemoved: 0, // Creatures destroyed or removed
+                        extraTurns: 0, // Extra turns added
+                        tutorsTop: false, // Tutors to the top of library?
+                        tutorsBoard: false, // Tutors to the hand or board?
+                        countersSpell: false, // Counters a spell?
+                        landRemoved: false, // Destroys or removes a land?
+                        cardsDiscarded: 0, // Cards opponent discards
+                        storm: false, // Has storm?
+                        cascade: false, // Has cascade?
+                        monarchOrInit: false, // Adds Monarch or Initiative?
+                        boardWipe: false, // Can wipe the board?
+                        wordyAbilities: 0, // Wordy abilities
+
+                        // Non-Creature Artifacts
+                        nonManaAbilities: 0, // Non-Mana Abilities
+                        // wordyAbilities: 0, // Wordy abilities
+                        addedMana: 0, // Amount of mana added
+
+                        // Non-Creature Enchantment/Battle
+                        abilities: 0, // Number of abilities
+                        // wordyAbilities: 0, // Wordy abilities
+                        beginsInPlay: false, // Can begin in play?
+                        controlPermanent: false, // Can gain control of a permanent?
+                        pacify: false, // Can pacify, arrest, or exile?
+
+                        // Non-Basic Land
+                        colorsProducedOrFetched: 0, // Number of colors produced or lands fetched
+                        landType: false, // Has a basic land type
+                        subType: false, // Has a land subtype?
+                        manLand: false, // Can make or become a creature?
+                        // nonManaAbilities: 0, // Non-Mana Abilities ^(Not including coming into play tapped or untapped)
+                        untapped: false, // Comes in untapped?
+                        // addedMana: 0, // Amount of mana added in a turn
+
+                        // Planeswalker
+                        loyalty: Number(face?.loyalty), // Starting loyalty
+                        plusAbilities: 0, // Number of plus abilities
+                        minusAbilities: 0, // Number of minus abilities
+                        staticAbilities: 0, // Number of static abilities
+
+                        // Creatures
+                        power: face?.power && face?.power !== "*" ? Number(face?.power) : 0,
+                        toughness: face?.toughness && face?.toughness !== "*" ? face?.toughness : 0,
+                        // abilities: 0, // Number of abilities
+                        // wordyAbilities: 0, // Wordy abilities
+                        evasionAbilities: 0, // Number of evasion abilities ^(Flying, Shadow, Menace, Trample, etc.)
+                        protectionAbilities: 0, // Number of protection abilities ^(Protection from X, Hexproof, Shroud, Ward, Regeneration, Indestructible, etc.)
+                        stupidAbilities: 0, // Number of inherently stupid abilities ^(Specifically: Annihilator, Infect, Cascade, & Affinity)
+                        // creaturesRemoved: 0, // Removes another creature?
+                        manaAbilities: 0, // Has a mana ability?
+                        // monarchOrInit: false, // Adds Monarch or Initiative?
+                        searchesLibrary: false, // Triggers a search of a library?
+                    })))
+                    setCardFaceValues(cardFacesData.map(() => ({exp: 0, math: []})))
+                    setValue("banned", bannedOrRestricted.includes(data?.name))
+                }
                 setSearching(false)
             }, rej => {
                 console.log("rej", rej)
             })
     }
 
+    const handleAddCard = () => setCardList(prevState => {
+        prevState = [...prevState, {...watch(), faces: cardFaceValues}]
+        setStorage("cardList", [...prevState])
+        return prevState
+    })
+
+    const handleRemoveCard = (cardIndex) => setCardList(prevState => {
+        const newState = []
+        prevState.forEach((card, index) => {
+            if (index === cardIndex) return
+            newState.push(card)
+        })
+        setStorage("cardList", [...newState])
+        return newState
+    })
+
+    const handleRemoveAllCards = () => setCardList(() => {
+        setStorage("cardList", [])
+        return []
+    })
+
+    const handleOpenCard = (cardIndex) => {
+        setFromCart(true)
+        reset({...cardList[cardIndex]}, {keepDefaultValues: true})
+        setCardFaceValues([...cardList[cardIndex].faces])
+        setCardFaces([...cardList[cardIndex].faces])
+    }
+
+    const handleOpenCart = event => setAnchorEl(event.currentTarget)
+
+    const handleClose = () => setAnchorEl(null)
+
     return (
         <div className={`row ${smallDisplay ? "m-1" : "m-2"}`}>
             <Box className={`w-${smallDisplay ? 90 : 50}`} autoComplete="off" onSubmit={handleSearch}>
-                <Typography variant={"h4"}>Card Calculator</Typography>
+                <CardsMenu anchorEl={anchorEl} cardList={cardList}
+                           onClose={handleClose} onClear={handleRemoveCard}
+                           onClearAll={handleRemoveAllCards}
+                           onCardClick={handleOpenCard}
+                />
+                <Row className={"justify-content-between"}>
+                    <Typography variant={smallDisplay ? "h5" : "h4"}>Card Calculator</Typography>
+                    <div className={"mt-2 d-flex flex-row gap-2"}>
+                        <Button variant={"outlined"} onClick={handleAddCard}>{smallDisplay ? "Add" : "Add to Buys"}</Button>
+                        <Badge badgeContent={cardList.length} color={"primary"}>
+                            <Button variant={"outlined"} onClick={cardList.length > 0 ? handleOpenCart : undefined}>Buys</Button>
+                        </Badge>
+                    </div>
+                </Row>
                 <SmallScreen>
                     <form className={"d-flex flex-row mb-3 gap-3 w-100"} autoComplete={"off"} onSubmit={handleSearch}>
                         <SearchAutocomplete
@@ -389,9 +544,9 @@ const CardCalculator = () => {
                 )}
                 {!searching && cardFaces.map((face, faceIndex) => (
                     <CardFaceForm {...face}
-                                  showExp={cardFaceExp.length > 1}
-                                  onChange={(faceExp, faceEqu) => setCardFaceExp(prevState => {
-                                      prevState[faceIndex] = {exp: faceExp, equation: faceEqu}
+                                  showExp={cardFaceValues.length > 1}
+                                  onChange={cardFaceValue => setCardFaceValues(prevState => {
+                                      prevState[faceIndex] = {...cardFaceValue}
                                       return [...prevState]
                                   })}
                     />
@@ -404,7 +559,7 @@ const CardCalculator = () => {
                     src={(multiplePrintings ? printings[displayedPrinting] : cardImages)[Number(cardFlipped)]}
                     alt={watch().cardName}
                     style={{
-                        zIndex: 10, position: "absolute", right: -20, top: -70,
+                        zIndex: 10, position: "fixed", right: -20, top: -60,
                         paddingTop: 90, width: 150,
                         clipPath: "circle(10%)"
                     }}
