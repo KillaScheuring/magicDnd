@@ -140,7 +140,7 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
                                     </TableCell>
                                 </LargeScreen>
                                 <TableCell>Total</TableCell>
-                                <TableCell>{cardList.reduce((total, card) => total + card?.exp, 0)}</TableCell>
+                                <TableCell>{cardList.reduce((total, card) => total + Number(card?.exp), 0)}</TableCell>
                                 <TableCell>
                                     <IconButton onClick={onClearAll}>
                                         <Clear/>
