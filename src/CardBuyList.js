@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Button,
     IconButton,
     Menu,
     Table,
@@ -9,15 +10,29 @@ import {
     TableHead,
     TableRow,
     useMediaQuery,
-    useTheme
+    useTheme, Badge, Tooltip
 } from "@mui/material";
-import {LargeScreen} from "./Breakpoints";
-import {Clear} from "@mui/icons-material";
+import {LargeScreen, SmallScreen} from "./Breakpoints";
+import {Clear, ContentCopy, CalculateRounded} from "@mui/icons-material";
 
 const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardClick}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
     const open = Boolean(anchorEl)
+
+    const handleCopy = (addMath) => {
+        let buyListString = cardList.map(card => {
+            let cardLine = (`${card?.cardName} - ${card?.exp}`)
+            if (addMath) {
+                const mathString = card?.equationString.filter(variable => variable).join(" + ")
+                cardLine += `\n${mathString} = ${card?.exp}\n`
+            }
+            return cardLine
+        }).join("\n")
+        navigator.clipboard.writeText(buyListString)
+        window.alert("Copied to clipboard")
+    }
+
     return (
         <Menu
             anchorEl={anchorEl}
@@ -27,7 +42,9 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
             PaperProps={{
                 elevation: 0,
                 sx: {
-                    overflow: 'visible',
+                    // overflowY: 'visible',
+                    // overflowX: 'hidden',
+                    overflow: 'hidden',
                     filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
                     mt: 1.5,
                     '& .MuiAvatar-root': {
@@ -56,6 +73,30 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
             <TableContainer style={{width: smallDisplay ? "100vw" : "45vw"}}>
                 <Table>
                     <TableHead>
+                        <SmallScreen>
+                            <TableRow>
+                                <TableCell>
+                                    <IconButton size={"small"}
+                                            onClick={() => handleCopy(false)}>
+                                        <Tooltip title={"Copy List"}>
+                                            <ContentCopy/>
+                                        </Tooltip>
+                                    </IconButton>
+                                    <IconButton size={"small"}
+                                                onClick={() => handleCopy(true)}>
+                                        <Tooltip title={"Copy List w/ Math"}>
+                                            <Badge badgeContent={"+"}>
+                                                <ContentCopy/>
+                                            </Badge>
+                                        </Tooltip>
+                                    </IconButton>
+                                </TableCell>
+                                <TableCell>
+
+                                </TableCell>
+                                <TableCell/>
+                            </TableRow>
+                        </SmallScreen>
                         <TableRow>
                             <TableCell>Card</TableCell>
                             <LargeScreen>
@@ -85,7 +126,18 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
                         {cardList.length > 0 && (
                             <TableRow>
                                 <LargeScreen>
-                                    <TableCell colSpan={2}/>
+                                    <TableCell>
+                                        <Button variant={"contained"}
+                                                onClick={() => handleCopy(false)}>
+                                            Copy
+                                        </Button>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button variant={"outlined"}
+                                                onClick={() => handleCopy(true)}>
+                                            Copy w/ Math
+                                        </Button>
+                                    </TableCell>
                                 </LargeScreen>
                                 <TableCell>Total</TableCell>
                                 <TableCell>{cardList.reduce((total, card) => total + card?.exp, 0)}</TableCell>

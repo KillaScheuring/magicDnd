@@ -19,6 +19,13 @@ export const Variable = ({label, multiplier, value}) => {
     return <span>{label} (<span className={"text-success fw-bold"}>{value}</span>)</span>
 }
 
+export const formatVariable = (label, value, multiplier=null) => {
+    if (!value || value < 1) return null
+    if (typeof value === "boolean") return `${label} (${multiplier})`
+    if (multiplier > 1) return `${label} (${multiplier}*${value})`
+    return `${label} (${value})`
+}
+
 const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
@@ -122,8 +129,8 @@ const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
         if (cardType?.label !== "Non-Basic Land"){
             equation.push(
                 <span>
-                CMC [(<span className={"text-success fw-bold"}>{convertedManaCost}</span>) * {cardType?.label} (<span className={"text-success fw-bold"}>{cardType?.value}</span>)]
-            </span>
+                    CMC [(<span className={"text-success fw-bold"}>{convertedManaCost}</span>) * {cardType?.label} (<span className={"text-success fw-bold"}>{cardType?.value}</span>)]
+                </span>
             )
             equationString.push(`CMC [(${convertedManaCost}) * ${cardType?.label} (${cardType?.value})]`)
         }
@@ -131,14 +138,18 @@ const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
         // Anything with X or * in the casting cost or power/toughness incurs an additional 4-point cost.
         expCost += xOrStar * 4
         equation.push(<Variable label={"X/★"} multiplier={4} value={xOrStar}/>)
+        equationString.push(formatVariable("X/★", xOrStar, 4))
 
         // +5 points if it includes text like "players/opponents can’t".
         expCost += playersCant * 5
         equation.push(<Variable label={"Player Can't"} multiplier={5} value={playersCant}/>)
+        equationString.push(formatVariable("Player Can't", playersCant, 5))
 
         // +3 more points if it is Legendary.
         expCost += legendary * 3
         equation.push(<Variable label={"Legendary"} multiplier={3} value={legendary}/>)
+        equationString.push(formatVariable("Legendary", legendary, 3))
+
         for (let attributeName in formConfig) {
             const attribute = formConfig[attributeName]
             if (cardType?.label === "Non-Basic Land" && attributeName === "addedMana"){
@@ -159,6 +170,7 @@ const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
                                         multiplier={attribute.multiplier}
                                         value={value}
                 />)
+                equationString.push(formatVariable(attribute.label.equation, value, attribute.multiplier))
             }
             else {
                 expCost += getValues(attributeName) * attribute.multiplier
@@ -166,11 +178,12 @@ const CardFaceForm = ({showExp, onChange, ...defaultValues}) => {
                                         multiplier={attribute.multiplier}
                                         value={getValues(attributeName)}
                 />)
+                equationString.push(formatVariable(attribute.label.equation, getValues(attributeName), attribute.multiplier))
             }
         }
 
         setValue("exp", expCost)
-        onChange({...watch(), expCost, equation})
+        onChange({...watch(), expCost, equation, equationString})
     }, [
         setValue, cardType?.label, cardType?.value, convertedManaCost, xOrStar, playersCant, legendary, getValues,
         damage,

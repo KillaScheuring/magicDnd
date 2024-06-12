@@ -18,7 +18,7 @@ import {
 } from "./ControlledInput";
 import {rarityToMultiplier, cardTypeToManaCostMultiplier, rarityToLevel, bannedOrRestricted} from "./options"
 import {Row} from "./FormStyling";
-import CardFaceForm, {Variable} from "./CardFaceForm";
+import CardFaceForm, {formatVariable, Variable} from "./CardFaceForm";
 import {SmallScreen, LargeScreen} from "./Breakpoints";
 import {getStorage, setStorage, sortColors} from "./utils";
 import CardBuyList from "./CardBuyList";
@@ -70,27 +70,36 @@ const CardCalculator = () => {
 
     useEffect(() => {
         let equation = []
+        let equationString = []
         let expCost = 0
-        cardFaces.forEach(({exp, equation: math=[]}, index) => {
+        cardFaces.forEach(({exp, equation: math=[], equationString: mathString=[]}, index) => {
             expCost += exp
             if (cardFaces[index].cardType.label !== "Non-Basic Land") {
                 equation = [...equation, math[0]]
+                equationString = [...equationString, mathString[0]]
             }
             expCost += banned * 6
             equation.push(<Variable label={"Banned/Restricted"} value={banned} multiplier={6}/>)
+            equationString.push(formatVariable("Banned/Restricted", banned, 6))
+
             expCost += after2020 * 5
             equation.push(<Variable label={"Post-2020"} value={after2020} multiplier={5}/>)
+            equationString.push(formatVariable("Post-2020", after2020, 5))
+
             if (cardFaces[index].cardType.label !== "Non-Basic Land") {
                 equation = [...equation, ...math.slice(1)]
+                equationString = [...equationString, ...mathString.slice(1)]
             }
             else {
                 equation = [...equation, ...math]
+                equationString = [...equationString, ...mathString]
             }
         })
 
         expCost *= cardRarity?.value
         setCardMath(equation)
         setValue("exp", expCost)
+        setValue("equationString", equationString)
     }, [cardRarity, banned, after2020, setValue, cardFaces])
 
     useEffect(() => {
@@ -452,7 +461,7 @@ const CardCalculator = () => {
                                     style={{maxWidth: "100%"}}
                                 />
                                 {cardImages.length > 1 ? <Button onClick={() => setCardFlipped(prevState => !prevState)}>Transform</Button> : null}
-
+                                <OracleText oracleText={oracleText}/>
                             </div>
                             <PrintingsTabs visible={multiplePrintings}
                                            value={displayedPrinting}
