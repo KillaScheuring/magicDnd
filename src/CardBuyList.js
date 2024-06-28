@@ -13,7 +13,7 @@ import {
     useTheme, Badge, Tooltip
 } from "@mui/material";
 import {LargeScreen, SmallScreen} from "./Breakpoints";
-import {Clear, ContentCopy, CalculateRounded} from "@mui/icons-material";
+import {Clear, ContentCopy} from "@mui/icons-material";
 
 const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardClick}) => {
     const theme = useTheme()
@@ -25,7 +25,7 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
             let cardLine = (`${card?.cardName} - ${card?.exp}`)
             if (addMath) {
                 const mathString = card?.equationString.filter(variable => variable).join(" + ")
-                cardLine += `\n${mathString} = ${card?.exp}\n`
+                cardLine += `\n[${mathString}] * ${card?.cardRarity?.label} (${card?.cardRarity?.value}) = ${card?.exp}\n`
             }
             return cardLine
         }).join("\n")
