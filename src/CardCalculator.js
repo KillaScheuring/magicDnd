@@ -16,7 +16,13 @@ import {
     ControlledToggle as Toggle,
     SearchAutocomplete
 } from "./ControlledInput";
-import {rarityToMultiplier, cardTypeToManaCostMultiplier, rarityToLevel, bannedOrRestricted} from "./options"
+import {
+    rarityToMultiplier,
+    cardTypeToManaCostMultiplier,
+    rarityToLevel,
+    bannedOrRestricted,
+    modifierToMultiplier
+} from "./options"
 import {Row} from "./FormStyling";
 import CardFaceForm, {formatVariable, Variable} from "./CardFaceForm";
 import {SmallScreen, LargeScreen} from "./Breakpoints";
@@ -37,6 +43,7 @@ const CardCalculator = () => {
     const [cardOpen, setCardOpen] = useState(false)
     const [cardFlipped, setCardFlipped] = useState(false)
     const [mathOpen, setMathOpen] = useState(false)
+    const [modifierOpen, setModifierOpen] = useState(false)
 
     const [cardFaces, setCardFaces] = useState([])
     const [cardImages, setCardImages] = useState([])
@@ -59,6 +66,7 @@ const CardCalculator = () => {
             cardName: "",
             exp: 0,
             cardRarity: {label: "Common", value: 1},
+            expModifier: {label: "None", value: 1},
             banned: false,
             after2020: false,
         },
@@ -66,7 +74,7 @@ const CardCalculator = () => {
 
     const multiplePrintings = !(printings.firstPrinting[0] === printings.lowestRarity[0] && printings.firstPrinting[0] === printings.highestRarity[0])
 
-    const { cardRarity, banned, after2020, cardName } = watch()
+    const { cardRarity, expModifier, banned, after2020, cardName } = watch()
 
     useEffect(() => {
         let equation = []
@@ -97,10 +105,14 @@ const CardCalculator = () => {
         })
 
         expCost *= cardRarity?.value
+        if (expModifier?.value) {
+            expCost *= expModifier?.value
+            expCost = Math.floor(expCost)
+        }
         setCardMath(equation)
         setValue("exp", expCost)
         setValue("equationString", equationString)
-    }, [cardRarity, banned, after2020, setValue, cardFaces])
+    }, [cardRarity, banned, after2020, setValue, cardFaces, expModifier])
 
     useEffect(() => {
         if (cardName) handleSearch(null)
@@ -271,6 +283,7 @@ const CardCalculator = () => {
                         searchesLibrary: false, // Triggers a search of a library?
                     })))
                     setValue("banned", bannedOrRestricted.includes(data?.name))
+                    setValue("expModifier", {label: "None", value: 1})
                 }
                 setTimeout(() => setSearching(false), 500)
             }, rej => {
@@ -347,20 +360,38 @@ const CardCalculator = () => {
                 <LargeScreen>
                     <Row>
                         <form className={"d-flex flex-row mb-3 gap-3 w-50"} autoComplete={"off"} onSubmit={handleSearch}>
-                            <SearchAutocomplete
-                                control={control} name={"cardName"}
-                                label={"Card Name"}
-                                onInputChange={getCardNameSuggestions}
-                                suggestions={cardNameSuggestions}
-                            />
-                            <Button variant={"contained"} className={"mt-5 mb-4"} type={"submit"}>Search</Button>
+                            <div className={"w-75 mt-auto"}>
+                                <SearchAutocomplete
+                                    control={control} name={"cardName"}
+                                    label={"Card Name"}
+                                    onInputChange={getCardNameSuggestions}
+                                    suggestions={cardNameSuggestions}
+                                />
+                            </div>
+                            <div className={"w-25 mt-auto"}>
+                                <Button variant={"contained"} type={"submit"}>Search</Button>
+                            </div>
                         </form>
                         <Row className={"w-50"}>
-                            <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
-                            <Button variant={"outlined"} className={"mt-5 mb-4"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
+                            <div className={"w-50 mt-auto"}>
+                                <TextField name={"exp"} label={"EXP"} type={"number"} control={control}/>
+                            </div>
+                            <div className={"w-50 mt-auto gap-2"}>
+                                <Button variant={"outlined"} className={"me-1"} onClick={() => setModifierOpen(prevState => !prevState)}>Mod</Button>
+                                <Button variant={"outlined"} onClick={() => setMathOpen(prevState => !prevState)}>Math</Button>
+                            </div>
                         </Row>
                     </Row>
                 </LargeScreen>
+
+                {modifierOpen && (
+                    <Row className={"w-25"}>
+                        <Autocomplete name={"expModifier"} label={"Modifier"}
+                                      options={modifierToMultiplier} control={control}
+                        />
+                    </Row>
+                )}
+
                 {mathOpen && (
                     <Row>
                         <span>

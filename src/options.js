@@ -5,6 +5,13 @@ export const rarityToMultiplier = [
     {label: "Mythic+", value: 4},
 ];
 
+export const modifierToMultiplier = [
+    {label: "Single Card Spin", value: 5},
+    {label: "Duplicate Card", value: 2},
+    {label: "Dust", value: -0.5},
+    {label: "None", value: 1},
+];
+
 export const rarityToLevel = {
     common: 0,
     uncommon: 1,
