@@ -15,6 +15,8 @@ import {
 import {LargeScreen, SmallScreen} from "./Breakpoints";
 import {Clear, ContentCopy} from "@mui/icons-material";
 
+const formatOption = ({label, value}) => `${label} (${value})`
+
 const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardClick}) => {
     const theme = useTheme()
     const smallDisplay = useMediaQuery(theme.breakpoints.down("lg"))
@@ -25,7 +27,13 @@ const CardBuyList = ({anchorEl, cardList, onClose, onClear, onClearAll, onCardCl
             let cardLine = (`${card?.cardName} - ${card?.exp}`)
             if (addMath) {
                 const mathString = card?.equationString.filter(variable => variable).join(" + ")
-                cardLine += `\n[${mathString}] * ${card?.cardRarity?.label} (${card?.cardRarity?.value}) = ${card?.exp}\n`
+                if (card?.expModifier?.value && card?.expModifier?.label !== "None") {
+                    cardLine += `\n[[${mathString}] * ${formatOption(card?.cardRarity || {})}] * `
+                    cardLine += `${formatOption(card?.expModifier || {})} = ${card?.exp}\n`
+                }
+                else {
+                    cardLine += `\n[${mathString}] * ${card?.cardRarity?.label} (${card?.cardRarity?.value}) = ${card?.exp}\n`
+                }
             }
             return cardLine
         }).join("\n")

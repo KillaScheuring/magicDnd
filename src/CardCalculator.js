@@ -119,6 +119,10 @@ const CardCalculator = () => {
     }, [cardName])
 
     useEffect(() => {
+        if (!expModifier) setValue("expModifier", {label: "None", value: 1})
+    }, [expModifier])
+
+    useEffect(() => {
         const storedCardList = getStorage("cardList")
         if (storedCardList?.length > 0) setCardBuyList(storedCardList)
     }, [setCardBuyList])
@@ -394,9 +398,15 @@ const CardCalculator = () => {
 
                 {mathOpen && (
                     <Row>
-                        <span>
-                            (<span className={"equation"}>{cardMath}</span>) * <Variable {...cardRarity}/>
-                        </span>
+                        {expModifier?.value && expModifier?.label !== "None" ? (
+                            <span>
+                                [(<span className={"equation"}>{cardMath}</span>) * <Variable {...cardRarity}/>] * <Variable {...expModifier}/>
+                            </span>
+                        ) : (
+                            <span>
+                                (<span className={"equation"}>{cardMath}</span>) * <Variable {...cardRarity}/>
+                            </span>
+                        )}
                     </Row>
                 )}
 
